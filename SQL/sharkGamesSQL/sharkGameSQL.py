@@ -365,7 +365,7 @@ def get_net_availability(username: str):
     
     return available_nets, about_to_break, broken, net_uses
 
-def remove_net_use(username: str, net: str, net_uses: str):
+def remove_net_use(username: str, net: str, net_uses: int):
     
     cursor.execute(f"UPDATE TABLE '{username} dex' SET net_uses={net_uses} WHERE net='{net}' ORDER BY time DESC")
     # for t in dex_tables:

@@ -118,6 +118,33 @@ class SharkLoops:
             for user in caught_users: # looks through all the keys
                 num = random.randint(0, 100)
                 net = lists_of_after.get(user) if sg.is_net_available(user, lists_of_after.get(user)) else "rope net"
+                if net != "rope net":
+                    available_nets, about_to_break, broken_nets, net_uses = sg.get_net_availability(user)
+                    if net in available_nets:
+                        # print("found it")
+                        if net in about_to_break and net_uses == 21:
+                            await channel.send(f"WARNING @{user}: Net is about to break, 1 more use left. Do not worry through because you have 4 more of the same net left")
+                        elif net in about_to_break and net_uses == 16:
+                            await channel.send(f"WARNING @{user}: Net is about to break, 1 more use left. Do not worry through because you have 3 more of the same net left")
+                        elif net in about_to_break and net_uses == 11:
+                            await channel.send(f"WARNING @{user}: Net is about to break, 1 more use left. Do not worry through because you have 2 more of the same net left")
+                        elif net in about_to_break and net_uses == 6:
+                            await channel.send(f"WARNING @{user}: Net is about to break, 1 more use left. Do not worry through because you have 1 more of the same net left")
+                        elif net in about_to_break and net_uses == 1:
+                            await channel.send(f"WARNING @{user}: Net is about to break, 1 more use left. This is your last net")
+                        
+                        
+                        if net in broken_nets and net_uses == 20:
+                            await channel.send(f"WARNING @{user}: Net broken, don't worry through because you have 4 more of the same net left")
+                        elif net in broken_nets and net_uses == 15:
+                            await channel.reply(f"WARNING @{user}: Net broken, don't worry through because you have 3 more of the same net left")
+                        elif net in broken_nets and net_uses == 10:
+                            await channel.reply(f"WARNING @{user}: Net broken, don't worry through because you have 2 more of the same net left")
+                        elif net in broken_nets and net_uses == 5:
+                            await channel.reply(f"WARNING @{user}: Net broken, don't worry through because you have 1 more of the same net left")
+                        elif net in broken_nets and net_uses == 0:
+                            await channel.reply(f"WARNING @{user}: Net broken. You have no more uses of the same net left")
+                            
                 if num <= odds(str(user), net):
 
                     current_time = dt.datetime.now()
@@ -125,7 +152,7 @@ class SharkLoops:
                     success.append(user)
                     sg.create_dex(username=user, shark_name=name_to_drop, when_caught=time_caught, net_used=net, rarity=rarity)
                     coins = sg.reward_coins(username=user, rare=rarity, shark=True, shark_name=name_to_drop)
-
+                sg.remove_net_use(user, net, net_uses - 1)
             if not success:
                 await channel.send(f"A {rarity} {name_to_drop} has escaped, no one caught it. 😞")
             elif len(success) == 1:
