@@ -368,12 +368,12 @@ def get_net_availability(username: str):
 
 def remove_net_use(username: str, net: str, net_uses: int):
     
-    cursor.execute(f"UPDATE '{username} dex' SET net_uses={net_uses} WHERE net='{net}' ORDER BY time DESC")
-    # for t in dex_tables:
-    #     try:
-    #         cursor.execute(f"""ALTER TABLE '{t}' ADD COLUMN {column_name} {column_type} DEFAULT {default};""")
-    #     except sqlite3.OperationalError as e:
-    #         print(f"Skipping {t}: {e}")
+    cursor.execute(f"""SELECT rowid FROM '{username} dex' WHERE net='{net}' ORDER BY time DESC LIMIT 1;""")
+    row = cursor.fetchone()
+
+    if row is not None:
+        rowid = row[0]
+        cursor.execute(f"UPDATE '{username} dex' SET net_uses={net_uses} WHERE rowid = {rowid}")
 
 def is_net_available(username: str, net: str):
 
