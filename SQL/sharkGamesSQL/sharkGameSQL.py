@@ -367,7 +367,7 @@ def get_net_availability(username: str):
 
 def remove_net_use(username: str, net: str, net_uses: int):
     
-    cursor.execute(f"UPDATE TABLE '{username} dex' SET net_uses={net_uses} WHERE net='{net}' ORDER BY time DESC")
+    cursor.execute(f"UPDATE '{username} dex' SET net_uses={net_uses} WHERE net='{net}' ORDER BY time DESC")
     # for t in dex_tables:
     #     try:
     #         cursor.execute(f"""ALTER TABLE '{t}' ADD COLUMN {column_name} {column_type} DEFAULT {default};""")
