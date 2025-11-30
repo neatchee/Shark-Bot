@@ -604,8 +604,7 @@ Shark Catch Game:
                 await message.reply(f"Unfortunate, you have not caught anything. 😞")
             
             sg.remove_net_use(user, net, net_uses - 1)
-                
-                
+
 
         if message.content.startswith(prefix + "get dex"):
             user = message.author
@@ -653,11 +652,16 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
         
         if message.content.startswith(prefix + "my nets"):
             user = message.author
-            nets = sg.get_net_availability(user)
-            send = "Here's your nets: \n"
+            nets, about_to_break, _, _ = sg.get_net_availability(user)
+            send = "Here's your available nets: \n"
             i = 1
             for net in nets:
                 send += f"{i}. {net} \n"
+                i +=1
+            i = 1
+            send += "Here are your nets that are about to break: \n"
+            for atb in about_to_break:
+                send += f"{i}. {atb} \n"
             
             await message.reply(send)
         
