@@ -150,7 +150,7 @@ class SharkLoops:
                     current_time = dt.datetime.now()
                     time_caught: str = f"{current_time.date()} {current_time.hour}"
                     success.append(user)
-                    sg.create_dex(username=user, shark_name=name_to_drop, when_caught=time_caught, net_used=net, rarity=rarity)
+                    sg.create_dex(username=user, shark_name=name_to_drop, when_caught=time_caught, net_used=net, rarity=rarity, net_uses=net_uses)
                     coins = sg.reward_coins(username=user, rare=rarity, shark=True, shark_name=name_to_drop)
                 sg.remove_net_use(user, net, net_uses - 1)
             if not success:
