@@ -96,6 +96,7 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🥷'): ROLES["backpacks and sherpas"]["warframe backpack"],
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring backpack"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign backpack"],
+            discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Backpack"],
         },
         "sherpa": {
             discord.PartialEmoji(name='🦸'): ROLES["backpacks and sherpas"]["marvel rivals sherpa"],
@@ -104,6 +105,7 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🥷'): ROLES["backpacks and sherpas"]["warframe sherpa"],
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring sherpa"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign sherpa"],
+            discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Sherpa"],
         }
     }    
 }
