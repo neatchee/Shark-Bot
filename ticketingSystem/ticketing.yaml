@@ -1,0 +1,16 @@
+guild ids:
+  shark squad: 1273776575266951268
+  test server: 1066090135839580231
+ticket channels:
+  test server: 1446051942202609785
+  shark squad: 0 
+category ids:
+  test server:
+    general: 1446052298747805797
+    technical: 1446052336349872184
+role ids:
+  test server:
+    general: 1446052643935096894 # team role 1
+    technical: 1446052549596549141 # team role 2
+embed title: Support ticket
+embed description: This is where you can raise a ticket
