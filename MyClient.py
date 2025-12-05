@@ -152,7 +152,8 @@ class MyClient(discord.Client):
     @levels_loop.error
     async def levels_loop_error(self, error):
         # catch unhandelled exceptions inside the Loop
-        logging.exception("levels loop error: %s", error)
+        logging.exception("levels loop error: %s", error)\
+        
     # ======= ON RUN =======
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
