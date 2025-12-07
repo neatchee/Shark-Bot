@@ -1,6 +1,6 @@
 import discord
 import logging
-from MyView import MyView, CloseButton, TicketOptions
+from  ticketingSystem.MyView import MyView, CloseButton, TicketOptions
 
 # ======= Logging =======
 handler = logging.FileHandler(filename="tickets.log", encoding="utf-8", mode="a")

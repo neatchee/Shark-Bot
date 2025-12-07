@@ -1,5 +1,6 @@
 import discord, sqlite3, io, asyncio
-from ..utils import read_Yaml as RY
+from pathlib import Path
+import utils.read_Yaml as RY
 from zoneinfo import ZoneInfo
 from datetime import datetime
 import chat_exporter # pip install chat-exporter
@@ -8,7 +9,7 @@ conn = sqlite3.connect("databases/Ticket_System.db")
 cur = conn.cursor()
 
 # ===== CONFIG =====
-config = RY.load_config("ticketingSystem/ticketing.yaml")
+config = RY.read_config(Path(r"ticketingSystem/ticketing.yaml"))
 GUILD_IDS: dict = config["guild ids"]
 TICKET_CHANNELS: dict = config["ticket channels"]
 CATEGORY_IDS: dict = config["category ids"]

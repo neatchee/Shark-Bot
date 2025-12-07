@@ -1,5 +1,5 @@
 import discord
-from TicketOptions import TicketOptions
+from ticketingSystem.TicketOptions import TicketOptions
 
 # First button for the ticket
 class CloseButton(discord.ui.View):

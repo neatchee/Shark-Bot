@@ -1,10 +1,10 @@
-import discord
-import sqlite3
+import discord, sqlite3
+from pathlib import Path
 from zoneinfo import ZoneInfo
 import datetime as dt
-from ..utils import read_Yaml as RY
+from utils.read_Yaml import read_config
 import asyncio, logging
-from CloseButton import CloseButton, TicketOptions
+from ticketingSystem.CloseButton import CloseButton, TicketOptions
 
 # ======= Logging =======
 handler = logging.FileHandler(filename="tickets.log", encoding="utf-8", mode="a")
@@ -16,7 +16,7 @@ conn = sqlite3.connect("databases/Ticket_System.db")
 cur = conn.cursor()
 
 # ===== CONFIG =====
-config = RY.load_config("ticketingSystem/ticketing.yaml")
+config = read_config(Path(r"ticketingSystem\ticketing.yaml"))
 GUILD_IDS: dict = config["guild ids"]
 TICKET_CHANNELS: dict = config["ticket channels"]
 CATEGORY_IDS: dict = config["category ids"]
