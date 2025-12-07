@@ -7,6 +7,7 @@ import datetime as dt
 from SQL.levellingSQL import levellingSQL as level
 from enum import Enum
 from loops.birthdayloop.birthdayLoop import BirthdayLoop, SharkLoops, TIME_PER_LOOP, sg
+from ticketingSystem.Ticket_System import TicketSystem
 
 # ======= Logging/Env =======
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="a")
@@ -129,6 +130,8 @@ class MyClient(discord.Client):
         super().__init__(*args, **kwargs)
         self.shark_loops = SharkLoops(self)
         self.birthday_loops = BirthdayLoop(self)
+        self.ticket_system = TicketSystem(self)
+        self._ticket_setup_done = False
 
     # levelling system
     @tasks.loop(seconds=5, reconnect=True)
@@ -161,6 +164,10 @@ class MyClient(discord.Client):
         logging.info(f"Logged in as {self.user} (ID: {self.user.id})")
         
         id_to_name: dict = {int(v): k for k, v in config["guilds"].items()}
+
+        # if not self._ticket_setup_done:
+        #     await self.ticket_system.setup()
+        #     self._ticket_setup_done = True
 
         for guild in self.guilds:
             await self.ensure_react_roles_message(guild)

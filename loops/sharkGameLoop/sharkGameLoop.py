@@ -118,6 +118,7 @@ class SharkLoops:
             for user in caught_users: # looks through all the keys
                 num = random.randint(0, 100)
                 net = lists_of_after.get(user) if sg.is_net_available(user, lists_of_after.get(user)) else "rope net"
+                net_uses = 0
                 if net != "rope net":
                     available_nets, about_to_break, broken_nets, net_uses = sg.get_net_availability(user)
                     if net in available_nets:

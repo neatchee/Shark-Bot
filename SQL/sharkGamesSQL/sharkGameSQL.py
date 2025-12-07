@@ -282,7 +282,11 @@ def get_net_availability(username: str):
     """
     all_nets = []
     available_nets = ["rope net"]
-    all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets'"))
+    try:
+        all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets'"))
+    except sqlite3.OperationalError:
+        all_nets.extend(available_nets)
+        
     net_uses: int = 0
     
     about_to_break = []
@@ -318,7 +322,7 @@ def get_net_availability(username: str):
                             available_nets.append("gold net")
                         elif net_uses == 21 or net_uses == 16 or net_uses == 11 or net_uses == 6 or net_uses == 1:
                             available_nets.append("gold net")
-                            about_to_break("gold net")
+                            about_to_break.append("gold net")
                         elif net_uses == 20 or net_uses == 15 or net_uses == 10 or net_uses == 5 or net_uses == 0:
                             broken.append("gold net")
                             available_nets.append("gold net")
@@ -367,8 +371,11 @@ def get_net_availability(username: str):
     return available_nets, about_to_break, broken, net_uses
 
 def remove_net_use(username: str, net: str, net_uses: int):
+    try: 
+        cursor.execute(f"""SELECT rowid FROM '{username} dex' WHERE net='{net}' ORDER BY time DESC LIMIT 1;""")
+    except sqlite3.OperationalError:
+        return
     
-    cursor.execute(f"""SELECT rowid FROM '{username} dex' WHERE net='{net}' ORDER BY time DESC LIMIT 1;""")
     row = cursor.fetchone()
 
     if row is not None:
