@@ -452,24 +452,24 @@ def buy_net(username: str, net: int):
     bundle: bool = False
 
     match net:
-        case num_to_net.leather_net.value():
+        case num_to_net.leather_net.value:
             net_to_buy = "leather net"
-        case num_to_net.leather_net_5.value():
+        case num_to_net.leather_net_5.value:
             net_to_buy = "leather net"
             bundle = True
-        case num_to_net.gold_net.value():
+        case num_to_net.gold_net.value:
             net_to_buy = "gold net"
-        case num_to_net.gold_net_5.value():
+        case num_to_net.gold_net_5.value:
             net_to_buy = "gold net"
             bundle = True
-        case num_to_net.titanium_net.value():
+        case num_to_net.titanium_net.value:
             net_to_buy = "titanium net"
-        case num_to_net.titanium_net_5.value():
+        case num_to_net.titanium_net_5.value:
             net_to_buy = "titanium net"
             bundle = True
-        case num_to_net.net_of_doom.value():
+        case num_to_net.net_of_doom.value:
             net_to_buy = "net of doom"
-        case num_to_net.net_of_doom_5.value():
+        case num_to_net.net_of_doom_5.value:
             net_to_buy = "net of doom"
             bundle = True
         case _:
