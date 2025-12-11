@@ -703,22 +703,29 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
             await message.reply(send)
 
             def check(m: discord.Message):
+
+                isInt: bool = False
+                
+                try:
+                    int(m.content.strip())
+                    isInt = True
+                except:
+                    isInt = False
                 return (
                     m.author.id == message.author.id and
                     m.channel.id == message.channel.id and
-                    (m.content.strip().lower() == "cancel" or type(m.content.strip()) == int)
+                    (m.content.strip().lower() == "cancel" or isInt)
                 )
             
             try:
                 follow = await client.wait_for("message", check=check, timeout=30)
                 follow_found = True
-                
             except asyncio.TimeoutError:
                 await message.reply("Timed out, try again with `?buy net`")
                 follow_found = False
                 
             if follow_found:
-                logging.info(follow.content.strip().lower()[1:])
+                logging.info(follow.content.strip().lower())
 
                 if follow.content.strip().lower() == "cancel":
                     await follow.reply("Cancelled.")
@@ -727,7 +734,7 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
                 success, net_name = sg.buy_net(message.author, int(follow.content.strip().lower()))
                 if success:
                     print("Found it!")
-                    await message.reply(f"Successfully bought {follow.content.strip().lower()}")
+                    await message.reply(f"Successfully bought {net_name}")
                     
 
 
