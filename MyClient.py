@@ -130,8 +130,8 @@ class MyClient(discord.Client):
         super().__init__(*args, **kwargs)
         self.shark_loops = SharkLoops(self)
         self.birthday_loops = BirthdayLoop(self)
-        self.ticket_system = TicketSystem(self)
-        self._ticket_setup_done = False
+        # self.ticket_system = TicketSystem(self)
+        # self._ticket_setup_done = False
 
     # levelling system
     @tasks.loop(seconds=5, reconnect=True)
@@ -165,9 +165,9 @@ class MyClient(discord.Client):
         
         id_to_name: dict = {int(v): k for k, v in config["guilds"].items()}
 
-        if not self._ticket_setup_done:
-            await self.ticket_system.setup()
-            self._ticket_setup_done = True
+        # if not self._ticket_setup_done:
+            # await self.ticket_system.setup()
+            # self._ticket_setup_done = True
 
         for guild in self.guilds:
             await self.ensure_react_roles_message(guild)
@@ -706,12 +706,13 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
                 return (
                     m.author.id == message.author.id and
                     m.channel.id == message.channel.id and
-                    (m.content.strip().lower() == "cancel" or m.content.strip().startswith(prefix))
+                    (m.content.strip().lower() == "cancel" or type(m.content.strip()) == int)
                 )
             
             try:
                 follow = await client.wait_for("message", check=check, timeout=30)
                 follow_found = True
+                
             except asyncio.TimeoutError:
                 await message.reply("Timed out, try again with `?buy net`")
                 follow_found = False
