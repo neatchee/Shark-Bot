@@ -688,7 +688,7 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
 
         if message.content.startswith(prefix + "buy net"):
             
-            send = "Choose a net to buy: (choose within the next 30 seconds) \n To choose type `?net name` or type cancel to cancel \n"
+            send = "Choose a net to buy: (choose within the next 30 seconds) \n To choose type the number of the net or type cancel to cancel \n"
 
             nets, prices = sg.get_nets()
             
@@ -723,10 +723,11 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
                     await follow.reply("Cancelled.")
                     return
                 # print(nets)
-                if follow.content.strip().lower()[1:] in nets:
-                    print("found it")
-                    if sg.buy_net(message.author, follow.content.strip().lower()[1:]):
-                        await message.reply(f"Successfully bought {follow.content.strip().lower()[1:]}")
+                success, net_name = sg.buy_net(message.author, int(follow.content.strip().lower()))
+                if success:
+                    print("Found it!")
+                    await message.reply(f"Successfully bought {follow.content.strip().lower()}")
+                    
 
 
 

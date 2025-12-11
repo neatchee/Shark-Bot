@@ -473,7 +473,7 @@ def buy_net(username: str, net: int):
             net_to_buy = "net of doom"
             bundle = True
         case _:
-            return False
+            return False, None
 
     for prices in cursor.execute(f"SELECT price FROM 'nets shop' WHERE net='{net_to_buy}'"):
         price.extend(prices)
@@ -489,19 +489,19 @@ def buy_net(username: str, net: int):
 
     if coins >= price[-1]:
 
-        if not is_net_available(username, net) and not bundle:
+        if not is_net_available(username, net_to_buy) and not bundle:
             cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE")
             cursor.execute(f"UPDATE '{username} dex' SET net_use=5 WHERE net='{net_to_buy}' WHERE time=?", (latest_catch))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch))
             connection.commit()
-            return True
-        elif not is_net_available(username, net) and bundle:
+            return True, net_to_buy
+        elif not is_net_available(username, net_to_buy) and bundle:
             cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE")
             cursor.execute(f"UPDATE '{username} dex' SET net_use=25 WHERE net='{net_to_buy}' WHERE time=?", (latest_catch))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch))
-            return True
-        elif is_net_available(username, net):
-            return False
+            return True, net_to_buy
+        elif is_net_available(username, net_to_buy):
+            return False, net_to_buy
     else:
         return False
 
