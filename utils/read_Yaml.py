@@ -29,7 +29,7 @@ def read_config(CONFIG: Path):
     """
     Reads a YAML file.
     
-    Args: 
+    :param: 
         CONFIG (Path): The path of the YAML file.
     
     Returns:

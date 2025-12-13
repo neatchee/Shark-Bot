@@ -1,8 +1,8 @@
-import discord, sqlite3, io, asyncio
+import discord, sqlite3, io, asyncio, logging
 from pathlib import Path
 import utils.read_Yaml as RY
-from zoneinfo import ZoneInfo
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import chat_exporter # pip install chat-exporter
 
 conn = sqlite3.connect("databases/Ticket_System.db")
@@ -19,58 +19,110 @@ EMBED_DESCRIPTION: str = config["embed description"]
 LOG_CHANNEL: int = config["log channel"]
 timezone = ZoneInfo("America/Chicago")
 
+# ===== LOGGING =====
+handler = logging.FileHandler(filename="tickets.log", encoding="utf-8", mode="a")
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(handler)
 
 class TicketOptions(discord.ui.View):
     def __init__(self, bot: discord.Client):
         self.bot = bot
-        super().__init__()
+        super().__init__(timeout=None)
 
     @discord.ui.button(label="Delete Ticket 🎫", style=discord.ButtonStyle.red, custom_id="delete")
-    async def delete_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def delete_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.guild.id in GUILD_IDS.values():
             guild_id = interaction.guild.id
 
         guild = self.bot.get_guild(guild_id)
         channel = self.bot.get_channel(LOG_CHANNEL)
-        ticket_id = interaction.channel.id
+        channel_id = interaction.channel.id
 
-        cur.execute("SELECT id, discord_id, ticket_created FROM ticket WHERE ticket_channel=?", (ticket_id,))
+        cur.execute("SELECT id, discord_id, ticket_created FROM ticket WHERE ticket_channel=?", (channel_id,))
         ticket_data = cur.fetchone()
+        if ticket_data is None:
+            logging.warning("[TICKETING SYSTEM] ticket_data is None")
+            return
+        
         id, ticket_creator_id, ticket_created = ticket_data
         ticket_creator = guild.get_member(ticket_creator_id)
         ticket_created_unix = self.convert_to_unix_timestamp(ticket_created)
-
         ticket_closed = datetime.now(timezone).strftime(r'%Y-%m-%d %H:%M:%S')
         ticket_closed_unix = self.convert_to_unix_timestamp(ticket_closed)
-        
-        # Creating Transcript
-        military_time: bool = True
-        transcript = await chat_exporter.export(interaction.channel, limit=200, tz_info=timezone, military_time=military_time, bot=self.bot)
+        try:
+            # Creating Transcript
+            military_time: bool = True
+            transcript = await chat_exporter.export(interaction.channel, limit=200, tz_info="America/Chicago", military_time=military_time, bot=self.bot)
 
-        transcript_file = discord.File(
-            io.BytesIO(transcript.encode()),
-            filename=f"transcript-{interaction.channel.name}.html"
-            )
-        transcript_file2 = discord.File(
-            io.BytesIO(transcript.encode()),
-            filename=f"transcript-{interaction.channel.name}.html"
-            )
+            if not transcript:
+                await interaction.response.send_message("Failed to generate transcript!", ephemeral=True)
+                return
+
+            if not transcript:
+                logging.error("[TICKETTING SYSTEM] Transcript exporter returned None or Empty string")
+                transcript = "<html><body><h1> Transcript Generation failed</h1></body></html>"
+            
+            # Ensure transcript is a string
+            if isinstance(transcript, bytes):
+                transcript = transcript.decode('utf-8')
+
+            logging.info(f"[TICKETTING SYSTEM] Transcript generated: {len(transcript)} characters")
+
+        except Exception as e:
+            logging.error(f"[TICKETTING SYSTEM] Failed to generate transcript: {e}")
+            transcript = f"<html><body><h1>Error generating transcript</h1><p>{str(e)}</p></body></html>"
+    
         
         embed = discord.Embed(description=f"Ticket is deleting in 5 seconds.", color=0xff0000)
-        transcript_info = discord.Embed(title=f"Ticket Deleted | {interaction.channel.name}", color=discord.colour.Color.blue())
-        transcript_info.add_field(name="ID", value=id, inline=True)
-        transcript_info.add_field(name="Opened by", value=ticket_creator.mention, inline=True)
-        transcript_info.add_field(name="Closed by", value=interaction.user.mention, inline=True)
-        transcript_info.add_field(name="Ticket Created", value=f"<t:{ticket_created_unix}:f>", inline=True)
-        transcript_info.add_field(name="Ticket Closed", value=f"<t:{ticket_closed_unix}:f>", inline=True)
 
         await interaction.response.send_message(embed=embed)
-        try:
-            await ticket_creator.send(embed=transcript_info, file=transcript_file)
-        except:
-            transcript_info.add_field(name="Error", value="Ticket Creator DM's are disabled", inline=True)
+
+        transcript_bytes_user = io.BytesIO(transcript.encode('utf-8'))
+        transcript_file_user = discord.File(
+            transcript_bytes_user,
+            filename=f"transcript-user-{interaction.channel.name}.html"
+        )
+
+        """
+        This separation is needed due to the nature of how BytesIO works.
+        After finishing the discord.File it's at the end of the Bytes, so the next file will result in having 0 Bytes of data.
+        """
+
+        transcript_bytes_logs = io.BytesIO(transcript.encode('utf-8'))
+        transcript_file_logs = discord.File(
+            transcript_bytes_logs,
+            filename=f"transcript-logs-{interaction.channel.name}.html"
+        )
+
+        if ticket_creator:
+            try:
+                # Create a copy of the embed for DM
+                dm_embed = discord.Embed(title=f"Ticket Deleted | {interaction.channel.name}", color=discord.colour.Color.blue())
+                dm_embed.add_field(name="ID", value=id, inline=True)
+                dm_embed.add_field(name="Opened by", value=ticket_creator.mention, inline=True)
+                dm_embed.add_field(name="Closed by", value=interaction.user.mention, inline=True)
+                dm_embed.add_field(name="Ticket Created", value=f"<t:{ticket_created_unix}:f>", inline=True)
+                dm_embed.add_field(name="Ticket Closed", value=f"<t:{ticket_closed_unix}:f>", inline=True)
+
+                await ticket_creator.send(embed=dm_embed, file=transcript_file_user)
+            except discord.Forbidden:
+                transcript_info.add_field(name="Error", value="Ticket Creator DM's are disabled", inline=True)
+            except Exception as e:
+                transcript_info.add_field(name="Error", value=f"Failed to send DM: {str(e)}")
+                logging.error(f"Failed to send DM to ticket creator ({ticket_creator}): {e}")
         
-        await channel.send(embed=transcript_info, file=transcript_file)
+        try:
+            transcript_info = discord.Embed(title=f"Ticket Deleted | {interaction.channel.name}", color=discord.colour.Color.blue())
+            transcript_info.add_field(name="ID", value=id, inline=True)
+            transcript_info.add_field(name="Opened by", value=ticket_creator.mention, inline=True)
+            transcript_info.add_field(name="Closed by", value=interaction.user.mention, inline=True)
+            transcript_info.add_field(name="Ticket Created", value=f"<t:{ticket_created_unix}:f>", inline=True)
+            transcript_info.add_field(name="Ticket Closed", value=f"<t:{ticket_closed_unix}:f>", inline=True)
+            
+            await channel.send(embed=transcript_info, file=transcript_file_logs)
+        except Exception as e:
+            logging.error(f"Failed to send transcript to log channel: {e}")
         await asyncio.sleep(3)
         await interaction.channel.delete(reason="Ticket Deleted")
         cur.execute("DELETE FROM ticket WHERE discord_id=?", (ticket_creator_id, ))
@@ -78,7 +130,7 @@ class TicketOptions(discord.ui.View):
     
     def convert_to_unix_timestamp(self, date_string):
         date_format= r"%Y-%m-%d %H:%M:%S"
-        dt_obj: datetime = datetime.strftime(date_string, date_format)
+        dt_obj: datetime = datetime.strptime(date_string, date_format)
         return int(dt_obj.timestamp())
 
         

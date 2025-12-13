@@ -19,8 +19,10 @@ token = os.getenv("token")
 
 # ======= CONFIG =======
 CONFIG_PATH = Path(r"config.YAML")
+TICKET_CONFIG_PATH = Path(r"ticketingSystem\ticketing.yaml")
 
 config = RY.read_config(CONFIG=CONFIG_PATH)
+ticket_config = RY.read_config(CONFIG=TICKET_CONFIG_PATH)
 prefix: str = "?"
 
 # This is to check if the guild ID is in the config
@@ -130,8 +132,8 @@ class MyClient(discord.Client):
         super().__init__(*args, **kwargs)
         self.shark_loops = SharkLoops(self)
         self.birthday_loops = BirthdayLoop(self)
-        # self.ticket_system = TicketSystem(self)
-        # self._ticket_setup_done = False
+        self.ticket_system = TicketSystem(self)
+        self._ticket_setup_done = False
 
     # levelling system
     @tasks.loop(seconds=5, reconnect=True)
@@ -165,15 +167,28 @@ class MyClient(discord.Client):
         
         id_to_name: dict = {int(v): k for k, v in config["guilds"].items()}
 
-        # if not self._ticket_setup_done:
-            # await self.ticket_system.setup()
-            # self._ticket_setup_done = True
-
         for guild in self.guilds:
+
             await self.ensure_react_roles_message(guild)
             guild_name: str = id_to_name.get(guild.id)
+            
             if guild_name == "shark squad":
                 self.birthday_loops.start_for(guild.id)
+            
+            if not self._ticket_setup_done:
+                await self.ticket_system.setup_hook()
+                logging.info("[TICKETING SYSTEM] Ticket system set up, checking for messages now")
+
+                embed_message_ids = ticket_config.get("embed message ids")                
+                if embed_message_ids.get(guild_name) == 0:
+                    channel_id = ticket_config.get("ticket channels").get(guild_name)
+                    if channel_id is not None or channel_id != 0:
+                        channel = guild.get_channel(channel_id)
+                    else:
+                        logging.warning(f"[TICKET SYSTEM] Channel ID for {guild_name} is either None or Zero!")
+                    await self.ticket_system.send_ticket_panel(channel=channel)
+                    logging.info(f"[TICKETING SYSTEM] Ticket embed sent to {guild_name}")
+                self._ticket_setup_done = True
         
 
     # ======= ANNOUNCE ARRIVAL =======
