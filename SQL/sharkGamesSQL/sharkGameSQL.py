@@ -1,4 +1,4 @@
-import sqlite3, json, logging
+import sqlite3, json, logging, datetime as dt
 from enum import Enum
 
 # ======= Logging =======
@@ -58,16 +58,18 @@ def create_dex(username: str, shark_name: str, when_caught: str, net_used: str, 
     cursor.execute(f"""CREATE TABLE IF NOT EXISTS '{username} dex' 
                                 (shark text, time text, fact text, weight real, net text, coins real, rarity text, level INTEGER, net_uses INTEGER)""")
     cursor.execute(f"""CREATE TABLE IF NOT EXISTS '{username} nets'
-                                ('rope net' BOOLEAN, 'leather net' BOOLEAN, 'gold net' BOOLEAN, 'titanium net' BOOLEAN, 'net of doom' BOOLEAN)""")
+                                ('rope net' BOOLEAN, 'leather net' BOOLEAN, 'gold net' BOOLEAN, 'titanium net' BOOLEAN, 'net of doom' BOOLEAN, time text)""")
     fact = get_something(shark_name, "fact")
     weight = get_something(shark_name, "weight")
     net_type: str = net_used
     coins = check_currency(username)
     coins = 0 if coins is None else coins
     level = 0
+    current_time = dt.datetime.now()
+    time_caught: str = f"{current_time.date()} {current_time.hour}"
     row: tuple = (shark_name, when_caught, fact[0][0], weight[0][0], net_type, coins, rarity, level, net_uses)
     cursor.execute(f"INSERT OR IGNORE INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
-    cursor.execute(f"INSERT OR IGNORE INTO '{username} nets' VALUES (?, ?, ?, ?, ?)", (True, False, False, False, False))
+    cursor.execute(f"INSERT OR IGNORE INTO '{username} nets' VALUES (?, ?, ?, ?, ?)", (True, False, False, False, False, time_caught))
     connection.commit()
 
 def fish_caught(username: str, rarity: str):
@@ -241,6 +243,31 @@ def remove_column_to_dex(column_name: str):
 # cursor.execute("DROP TABLE 'nets shop'")
 # connection.commit()
 
+def add_column_to_net(column_name: str, column_type, default):
+    # 1) list all user tables:
+    cursor.execute("""
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                """)
+    table_names = [row[0] for row in cursor.fetchall()]
+
+    # 2) keep only tables that follow your pattern
+    net_tables = [t for t in table_names if t.endswith(" net")]
+
+    # 3) Alter each
+    for t in net_tables:
+        try:
+            cursor.execute(f"""ALTER TABLE '{t}' ADD COLUMN {column_name} {column_type} DEFAULT {default};""")
+        except sqlite3.OperationalError as e:
+            print(f"Skipping {t}: {e}")
+
+current_time = dt.datetime.now()
+time_now: str = f"{current_time.date()} {current_time.hour - 1}"
+
+add_column_to_net("time", "text", time_now)
+print("added column")
+
 def setup_net_shop():
     cursor.execute("""CREATE TABLE IF NOT EXISTS 'nets shop'
                             (net text PRIMARY KEY, price real, odds real)""")
@@ -393,7 +420,7 @@ def is_net_available(username: str, net: str):
     nets_available: dict = {}
     all_nets = []
     try:
-        all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets' DESC LIMIT 1"))
+        all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets' ORDER BY TIME DESC LIMIT 1"))
     except sqlite3.OperationalError:
         return False
     i = 0
@@ -522,16 +549,17 @@ def buy_net(username: str, net: int):
     latest_catch = catches[0]
 
     if coins >= price[-1]:
-
+        current_time = dt.datetime.now()
+        time_now: str = f"{current_time.date()} {current_time.hour}"
         if not is_net_available(username, net_to_buy) and not bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE, time={time_now}")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=5 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
             logging.info("[SHARK GAME SQL] Net bought successfully!")
             return success, net_to_buy, None # reason
         elif not is_net_available(username, net_to_buy) and bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=TRUE, time={time_now}")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
@@ -759,5 +787,36 @@ setup_net_shop()
 
 
 # print(get_dex("spiderbyte2007"))
+
+def add_row_to_nets():
+    # 1) list all user tables:
+    cursor.execute("""
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                """)
+    table_names = [row[0] for row in cursor.fetchall()]
+
+    # 2) keep only tables that follow your pattern
+    dex_tables = [t for t in table_names if t.endswith(" nets")]
+    tables = [dt2 for dt2 in table_names if dt2.endswith(" dex")]
+    # 3) Alter each
+    for t in dex_tables:
+        i = 0
+        try:
+            nets = ["leather net", "gold net", "titanium net", "net of doom"]
+            time_now: str = f"{current_time.date()} {current_time.hour}"
+            catches = []
+            for catch in cursor.execute(f"SELECT time FROM '{tables[i]}' ORDER BY time DESC LIMIT 1"):
+                catches.extend(catch)
+                latest_catch = catches[0]
+            for net_to_buy in nets:
+                cursor.execute(f"UPDATE '{t}' SET '{net_to_buy}'=TRUE, time={time_now}")
+                cursor.execute(f"UPDATE '{tables[i]}' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
+        except sqlite3.OperationalError as e:
+            print(f"Skipping {t}: {e}")
+        i+=1
+
+add_row_to_nets()
 
 connection.commit() #pushes changes to database
