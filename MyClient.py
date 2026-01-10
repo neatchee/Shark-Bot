@@ -372,7 +372,6 @@ class MyClient(discord.Client):
         rr_message = id_to_name_rr.get(message_id)
         mapping = ROLES_PER_GUILD.get(gid).get(rr_message)
         key = payload.emoji
-        print(key)
         try: 
             role_id = mapping.get(str(key))
             if role_id == None:
@@ -430,7 +429,9 @@ class MyClient(discord.Client):
         mapping = ROLES_PER_GUILD.get(gid).get(rr_message)
         key = payload.emoji
         try: 
-            role_id = mapping.get(key)
+            role_id = mapping.get(str(key))
+            if role_id == None:
+                role_id = mapping.get(key)
             print(f"found role ID: {role_id}")
         except KeyError:
             logging.info("not the emoji i care about")
