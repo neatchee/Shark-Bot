@@ -116,12 +116,12 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
         },
         "friend": {
             discord.PartialEmoji(name='🦸'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🧙‍♀️'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🧟'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🥷'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🏰'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🤺'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='🔫'): ROLES["friend"]["Marvel Rivals"],
+            discord.PartialEmoji(name='🧙‍♀️'): ROLES["friend"]["TFD"],
+            discord.PartialEmoji(name='🧟'): ROLES["friend"]["Monster Hunter"],
+            discord.PartialEmoji(name='🥷'): ROLES["friend"]["Warframe"],
+            discord.PartialEmoji(name='🏰'): ROLES["friend"]["Elden Ring"],
+            discord.PartialEmoji(name='🤺'): ROLES["friend"]["Nightreign"],
+            discord.PartialEmoji(name='🔫'): ROLES["friend"]["Destiney"],
             '<a:animateduwu:1279478093278609491>': ROLES["friend"]["DNA"],
             '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': ROLES["friend"]["ZZZ"]
         }
