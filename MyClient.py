@@ -100,8 +100,8 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring backpack"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign backpack"],
             discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Backpack"],
-            discord.PartialEmoji(name='<a:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA backpack"],
-            discord.PartialEmoji(name='<:Zerotwosurprisedbyliliiet112:1318361087833538631>'): ROLES["backpacks and sherpas"]["ZZZ backpack"],
+            '<a:animateduwu:1279478093278609491>': ROLES["backpacks and sherpas"]["DNA backpack"],
+            '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': ROLES["backpacks and sherpas"]["ZZZ backpack"],
         },
         "sherpa": {
             discord.PartialEmoji(name='🦸'): ROLES["backpacks and sherpas"]["marvel rivals sherpa"],
@@ -111,8 +111,8 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring sherpa"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign sherpa"],
             discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Sherpa"],
-            discord.PartialEmoji(name='<a:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA sherpa"],
-            discord.PartialEmoji(name='<:Zerotwosurprisedbyliliiet112:1318361087833538631>'): ROLES["backpacks and sherpas"]["ZZZ sherpa"],
+            '<a:animateduwu:1279478093278609491>': ROLES["backpacks and sherpas"]["DNA sherpa"],
+            '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': ROLES["backpacks and sherpas"]["ZZZ sherpa"],
         },
         "friend": {
             discord.PartialEmoji(name='🦸'): ROLES["friend"]["Marvel Rivals"],
@@ -122,8 +122,8 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🏰'): ROLES["friend"]["Marvel Rivals"],
             discord.PartialEmoji(name='🤺'): ROLES["friend"]["Marvel Rivals"],
             discord.PartialEmoji(name='🔫'): ROLES["friend"]["Marvel Rivals"],
-            discord.PartialEmoji(name='<a:animateduwu:1279478093278609491>'): ROLES["friend"]["DNA"],
-            discord.PartialEmoji(name='<:Zerotwosurprisedbyliliiet112:1318361087833538631>'): ROLES["friend"]["ZZZ"]
+            '<a:animateduwu:1279478093278609491>': ROLES["friend"]["DNA"],
+            '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': ROLES["friend"]["ZZZ"]
         }
     }    
 }
@@ -289,8 +289,6 @@ class MyClient(discord.Client):
                     continue # nothing to add
                 
                 existing = {str(r.emoji) for r in message.reactions}
-                print(existing)
-                print(mapping)
                 for emoji in mapping.keys():
                     if emoji not in existing:
                         try:
@@ -298,7 +296,7 @@ class MyClient(discord.Client):
                         except discord.HTTPException:
                             logging.error(f"[RR] could not add reaction {emoji} in {guild_name}")
 
-                current_content = message.content or ""
+                current_content = ""
                 current_lines = current_content.splitlines()
                 header = current_lines[0] if current_lines else "React to get your roles: "
                 existing_entries = set(current_lines[1 :]) if len(current_lines) > 1 else set()
@@ -455,8 +453,6 @@ class MyClient(discord.Client):
         if message.author.id == self.user.id:
             return
         
-        if message.content.startswith(prefix + "react"):
-            await message.add_reaction("<a:animateduwu:1279478093278609491>")
 
         if message.guild == None:
             await message.reply("I do not respond to dms, please message me in a server where my commands work. Thank you!")
