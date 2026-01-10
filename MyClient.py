@@ -100,7 +100,7 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring backpack"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign backpack"],
             discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Backpack"],
-            discord.PartialEmoji(name='<:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA backpack"],
+            discord.PartialEmoji(name='<a:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA backpack"],
             discord.PartialEmoji(name='<:Zerotwosurprisedbyliliiet112:1318361087833538631>'): ROLES["backpacks and sherpas"]["ZZZ backpack"],
         },
         "sherpa": {
@@ -111,7 +111,7 @@ ROLES_PER_GUILD: dict[int, dict[str, dict[discord.PartialEmoji, int]]] = {
             discord.PartialEmoji(name='🏰'): ROLES["backpacks and sherpas"]["elden ring sherpa"],
             discord.PartialEmoji(name='🤺'): ROLES["backpacks and sherpas"]["nightreign sherpa"],
             discord.PartialEmoji(name='🔫'): ROLES["backpacks and sherpas"]["Destiney Sherpa"],
-            discord.PartialEmoji(name='<:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA sherpa"],
+            discord.PartialEmoji(name='<a:animateduwu:1279478093278609491>'): ROLES["backpacks and sherpas"]["DNA sherpa"],
             discord.PartialEmoji(name='<:Zerotwosurprisedbyliliiet112:1318361087833538631>'): ROLES["backpacks and sherpas"]["ZZZ sherpa"],
         },
         "friend": {
@@ -265,25 +265,6 @@ class MyClient(discord.Client):
             logging.error(f"Guild {guild.name} is does not have a react roles message ID Key")
             return        
 
-        # Helper function
-        def parse_emoji(emoji_str):
-            """
-            Parse an emoji string into a discord compatible emoji object.
-            
-            :param emoji_str: A string where the emoji should be put
-            """
-            emoji_str = str(emoji_str).strip()
-
-            # check if it is a custom emoji
-            if emoji_str.startswith('<') and emoji_str.endswith('>'):
-                # Extract the ID
-                parts = emoji_str.strip('<>').split(':')
-                if len(parts) >= 3: # correct format
-                    emoji_id = parts[-1] # last part
-                    return emoji_id # For reactions, just the ID is necessary
-            
-            return emoji_str
-
         for rr_message in react_role_messages:
             # print(react_role_messages[rr_message])
 
@@ -309,9 +290,9 @@ class MyClient(discord.Client):
                 
                 existing = {str(r.emoji) for r in message.reactions}
                 print(existing)
+                print(mapping)
                 for emoji in mapping.keys():
-                    parsed = parse_emoji(emoji_str=emoji)
-                    if parsed not in existing:
+                    if emoji not in existing:
                         try:
                             await message.add_reaction(emoji)
                         except discord.HTTPException:
@@ -332,6 +313,8 @@ class MyClient(discord.Client):
                     except discord.HTTPException:
                         logging.error(f"[RR could not edit react-roles message {rr_message} in {guild_name}]")
                 # ---------------------------------------------------------------------------------------------
+                
+                
                 continue
             
 
