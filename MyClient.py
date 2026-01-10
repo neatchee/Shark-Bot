@@ -588,7 +588,7 @@ Shark Catch Game:
             
             fish_odds = sg.fishing_odds_fish(username=user, net_used=net)
 
-            rand_int = random.randint(1, 100)
+            rand_int = random.randint(0, 99)
             if rand_int <= fish_odds: #did it catch anything
                 catch_type = random.randint(1, 100)
                 if catch_type <= 5:
