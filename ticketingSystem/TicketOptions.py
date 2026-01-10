@@ -39,6 +39,15 @@ class TicketOptions(discord.ui.View):
         channel = self.bot.get_channel(LOG_CHANNEL)
         channel_id = interaction.channel.id
 
+        # ===== RESPOND IMMEDIATELY (within the 3 second window discord gives) =====
+        embed = discord.Embed(
+            description=f"⏳ Generating transcript and deleting ticket...",
+            color=0xff0000
+        )
+        await interaction.response.send_message(embed=embed)
+
+        # ===== NOW DO EVERYTHING ELSE =====
+
         cur.execute("SELECT id, discord_id, ticket_created FROM ticket WHERE ticket_channel=?", (channel_id,))
         ticket_data = cur.fetchone()
         if ticket_data is None:
@@ -72,11 +81,6 @@ class TicketOptions(discord.ui.View):
         except Exception as e:
             logging.error(f"[TICKETTING SYSTEM] Failed to generate transcript: {e}")
             transcript = f"<html><body><h1>Error generating transcript</h1><p>{str(e)}</p></body></html>"
-    
-        
-        embed = discord.Embed(description=f"Ticket is deleting in 5 seconds.", color=0xff0000)
-
-        await interaction.response.send_message(embed=embed)
 
         transcript_bytes_user = io.BytesIO(transcript.encode('utf-8'))
         transcript_file_user = discord.File(

@@ -374,7 +374,7 @@ class MyClient(discord.Client):
         key = payload.emoji
         print(key)
         try: 
-            role_id = mapping.get(key)
+            role_id = mapping.get(str(key))
             print(f"found role ID: {role_id}")
         except KeyError:
             logging.info("not the emoji i care about")

@@ -31,9 +31,8 @@ class BirthdayLoop:
         central = ZoneInfo("America/Chicago")
 
         current_year = dt.datetime.now(central).year
-        print(current_year)
 
-        firsts = [f"{current_year}-{str(i).zfill(2)}-01" for i in range(1, 13, 1)]
+        firsts = [f"{current_year}-{str(i)}-01" for i in range(1, 13, 1)]
         # print(firsts)
         c = self.client
 

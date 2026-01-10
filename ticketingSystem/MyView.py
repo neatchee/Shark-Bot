@@ -36,13 +36,13 @@ class MyView(discord.ui.View):
         placeholder="Choose a Ticket option",
         options=[
             discord.SelectOption(
-                label="support1",
-                description="You will get help here!",
+                label="Mod help",
+                description="Report something to the mods or get help from the mods",
                 emoji='❓',
                 value="support1"
             ),
             discord.SelectOption(
-                label="Support2",
+                label="Tech support",
                 description="Ask questions here!",
                 emoji='📛',
                 value="support2"
