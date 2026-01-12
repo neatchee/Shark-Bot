@@ -259,6 +259,7 @@ def add_column_to_net(column_name: str, column_type, default):
     for t in net_tables:
         try:
             cursor.execute(f"""ALTER TABLE '{t}' ADD COLUMN {column_name} {column_type} DEFAULT {default};""")
+            print(f"done for {t}")
         except sqlite3.OperationalError as e:
             print(f"Skipping {t}: {e}")
 
