@@ -263,10 +263,10 @@ def add_column_to_net(column_name: str, column_type, default):
             print(f"Skipping {t}: {e}")
 
 current_time = dt.datetime.now()
-time_now: str = f"{current_time.date()} {current_time.hour - 1}"
+# time_now: str = f"{current_time.date()} {current_time.hour - 1}"
 
-add_column_to_net("time", "text", time_now)
-print("added column")
+# add_column_to_net("time", "text", time_now)
+# print("added column")
 
 def setup_net_shop():
     cursor.execute("""CREATE TABLE IF NOT EXISTS 'nets shop'
