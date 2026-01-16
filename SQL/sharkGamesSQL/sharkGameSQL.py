@@ -845,6 +845,7 @@ def delete_all_rows_from_nets():
     nets_tables = [t for t in table_names if t.endswith(" nets")]
     for t in nets_tables:
         cursor.execute(f"DELETE FROM '{t}'") # To clear all existing 
+        print(f"Done for {t}")
 
 delete_all_rows_from_nets()
 add_row_to_nets()
