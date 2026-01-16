@@ -826,6 +826,7 @@ def add_row_to_nets():
                 row_count = cursor.execute(f"SELECT COUNT(*) FROM '{t}'").fetchone()[0]
                 if row_count == 0:
                     cursor.execute(f"INSERT INTO '{t}' VALUES (?, ?, ?, ?, ?, ?)", (True, False, False, False, False, time_now))
+                    print(f"Added row for {t}")
                     connection.commit()
                 else:
                     print(f"Skipping {t}: row already exists")
