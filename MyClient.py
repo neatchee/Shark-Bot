@@ -722,7 +722,7 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
 
         if message.content.startswith(prefix + "add coins"):
 
-            sg.add_coins("spiderbyte2007", 250)
+            sg.add_coins(message.author, 500)
 
             await message.reply("done")
 
