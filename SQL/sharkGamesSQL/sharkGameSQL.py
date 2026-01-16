@@ -846,6 +846,7 @@ def delete_all_rows_from_nets():
     for t in nets_tables:
         cursor.execute(f"DELETE FROM '{t}'") # To clear all existing 
         print(f"Done for {t}")
+    connection.commit()
 
 delete_all_rows_from_nets()
 add_row_to_nets()
