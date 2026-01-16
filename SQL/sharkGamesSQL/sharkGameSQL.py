@@ -69,7 +69,11 @@ def create_dex(username: str, shark_name: str, when_caught: str, net_used: str, 
     time_caught: str = f"{current_time.date()} {current_time.hour}"
     row: tuple = (shark_name, when_caught, fact[0][0], weight[0][0], net_type, coins, rarity, level, net_uses)
     cursor.execute(f"INSERT OR IGNORE INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
-    cursor.execute(f"INSERT OR IGNORE INTO '{username} nets' VALUES (?, ?, ?, ?, ?)", (True, False, False, False, False, time_caught))
+    # Check if row exists
+    row_count = cursor.execute(f"SELECT COUNT(*) FROM '{username} nets'").fetchone()[0]
+    if row_count == 0:
+        cursor.execute(f"INSERT INTO '{username} nets' VALUES (?, ?, ?, ?, ?, ?)", (True, False, False, False, False, time_caught))
+        connection.commit()
     connection.commit()
 
 def fish_caught(username: str, rarity: str):
@@ -344,7 +348,7 @@ def get_net_availability(username: str):
                             broken.append("leather net")
                             available_nets.append("leather net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'leather net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'leather net'=0")
                         else: 
                             broken.append("leather net")
                             
@@ -361,7 +365,7 @@ def get_net_availability(username: str):
                             broken.append("gold net")
                             available_nets.append("gold net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'gold net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'gold net'=0")
                         else: 
                             broken.append("gold net")
 
@@ -377,7 +381,7 @@ def get_net_availability(username: str):
                             broken.append("titanium net")
                             available_nets.append("titanium net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'titanium net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'titanium net'=0")
                         else: 
                             broken.append("titanium net")
 
@@ -393,7 +397,7 @@ def get_net_availability(username: str):
                             broken.append("net of doom")
                             available_nets.append("net of doom")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'net of doom'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'net of doom'=0")
                         else: 
                             broken.append("net of doom")
 
@@ -422,7 +426,7 @@ def is_net_available(username: str, net: str):
     nets_available: dict = {}
     all_nets = []
     try:
-        all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets' WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)"))
+        all_nets.extend(cursor.execute(f"SELECT * FROM '{username} nets'"))
     except sqlite3.OperationalError:
         return False
     i = 0
@@ -556,7 +560,7 @@ def buy_net(username: str, net: int):
         current_time = dt.datetime.now()
         time_now: str = f"{current_time.date()} {current_time.hour}"
         if not is_net_available(username, net_to_buy) and not bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}' WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=5 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
@@ -565,7 +569,7 @@ def buy_net(username: str, net: int):
             logging.info("[SHARK GAME SQL] Net bought successfully!")
             return success, net_to_buy, None # reason
         elif not is_net_available(username, net_to_buy) and bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}' WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
@@ -817,13 +821,18 @@ def add_row_to_nets():
                 catches.extend(catch)
                 latest_catch = catches[0]
             for net_to_buy in nets:
-                cursor.execute(f"UPDATE '{t}' SET '{net_to_buy}'=0, time='{time_now}'")
+                # cursor.execute(f"UPDATE '{t}' SET '{net_to_buy}'=0, time='{time_now}'")
+                # Check if row exists
+                row_count = cursor.execute(f"SELECT COUNT(*) FROM '{t}'").fetchone()[0]
+                if row_count == 0:
+                    cursor.execute(f"INSERT INTO '{t}' VALUES (?, ?, ?, ?, ?, ?)", (True, False, False, False, False, time_now))
+                    connection.commit()
+                else:
+                    print(f"Skipping {t}: row already exists")
                 # cursor.execute(f"UPDATE '{tables[i]}' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
         except sqlite3.OperationalError as e:
             print(f"Skipping {t}: {e}")
         i+=1
-
-# add_row_to_nets()
 
 def delete_all_rows_from_nets():
     cursor.execute("""
@@ -835,8 +844,9 @@ def delete_all_rows_from_nets():
 
     nets_tables = [t for t in table_names if t.endswith(" nets")]
     for t in nets_tables:
-        print(t)
-
+        cursor.execute(f"DELETE FROM '{t}'") # To clear all existing 
 
 delete_all_rows_from_nets()
+add_row_to_nets()
+
 connection.commit() #pushes changes to database
