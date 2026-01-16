@@ -812,7 +812,7 @@ def add_row_to_nets():
                 catches.extend(catch)
                 latest_catch = catches[0]
             for net_to_buy in nets:
-                cursor.execute(f"UPDATE '{t}' SET '{net_to_buy}'=0, time={time_now}")
+                cursor.execute(f"UPDATE '{t}' SET '{net_to_buy}'=0, time='{time_now}'")
                 # cursor.execute(f"UPDATE '{tables[i]}' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
         except sqlite3.OperationalError as e:
             print(f"Skipping {t}: {e}")
