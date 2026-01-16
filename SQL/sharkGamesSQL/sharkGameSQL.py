@@ -343,7 +343,7 @@ def get_net_availability(username: str):
                             broken.append("leather net")
                             available_nets.append("leather net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'leather net'=0")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'leather net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
                         else: 
                             broken.append("leather net")
                             
@@ -360,7 +360,7 @@ def get_net_availability(username: str):
                             broken.append("gold net")
                             available_nets.append("gold net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'gold net'=0")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'gold net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
                         else: 
                             broken.append("gold net")
 
@@ -372,11 +372,11 @@ def get_net_availability(username: str):
                         elif net_uses == 21 or net_uses == 16 or net_uses == 11 or net_uses == 6 or net_uses == 1:
                             available_nets.append("titanium net")
                             about_to_break.append("titanium net")
-                        elif net_uses == 20 or net_uses == 15 or net_uses == 10 or net_uses == 5:
+                        elif net_uses == 20 or net_uses == 15 or net_uses == 10 or net_uses == 5 or net_uses == 0:
                             broken.append("titanium net")
                             available_nets.append("titanium net")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'titanium net'=0")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'titanium net'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
                         else: 
                             broken.append("titanium net")
 
@@ -388,11 +388,11 @@ def get_net_availability(username: str):
                         elif net_uses == 21 or net_uses == 16 or net_uses == 11 or net_uses == 6 or net_uses == 1:
                             available_nets.append("net of doom")
                             about_to_break.append("net of doom")
-                        elif net_uses == 20 or net_uses == 15 or net_uses == 10 or net_uses == 5:
+                        elif net_uses == 20 or net_uses == 15 or net_uses == 10 or net_uses == 5 or net_uses == 0:
                             broken.append("net of doom")
                             available_nets.append("net of doom")
                             if net_uses == 0:
-                                cursor.execute(f"UPDATE '{username} nets' SET 'net of doom'=0")
+                                cursor.execute(f"UPDATE '{username} nets' SET 'net of doom'=0 WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
                         else: 
                             broken.append("net of doom")
 
@@ -553,14 +553,14 @@ def buy_net(username: str, net: int):
         current_time = dt.datetime.now()
         time_now: str = f"{current_time.date()} {current_time.hour}"
         if not is_net_available(username, net_to_buy) and not bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}' WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=5 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
             logging.info("[SHARK GAME SQL] Net bought successfully!")
             return success, net_to_buy, None # reason
         elif not is_net_available(username, net_to_buy) and bundle:
-            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
+            cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}' WHERE rowid=(SELECT rowid FROM '{username} nets' LIMIT 1)")
             cursor.execute(f"UPDATE '{username} dex' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
             cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             connection.commit()
