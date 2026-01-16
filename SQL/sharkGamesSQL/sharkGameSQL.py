@@ -552,17 +552,24 @@ def buy_net(username: str, net: int):
     
     catches = []
     latest_catch = ""
-    for catch in cursor.execute(f"SELECT time FROM '{username} dex' ORDER BY time DESC LIMIT 1"):
-        catches.extend(catch)
-    latest_catch = catches[0]
+    
 
     if coins >= price[-1]:
         current_time = dt.datetime.now()
         time_now: str = f"{current_time.date()} {current_time.hour}"
         if not is_net_available(username, net_to_buy) and not bundle:
             cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
-            cursor.execute(f"UPDATE '{username} dex' SET net_uses=5 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
-            cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
+            existing = cursor.execute(f"SELECT COUNT(*) FROM '{username} dex' WHERE net='{net_to_buy}'").fetchone()[0]
+
+            if existing > 0:
+                for catch in cursor.execute(f"SELECT time FROM '{username} dex' WHERE net='{net_to_buy}' ORDER BY time DESC LIMIT 1"):
+                    catches.extend(catch)
+                latest_catch = catches[0]
+                cursor.execute(f"UPDATE '{username} dex' SET net_uses=5 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
+                cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
+            else:
+                row: tuple = (None, time_now, None, None, net_to_buy, coins - price[-1], None, None, 5)
+                cursor.execute(f"INSERT INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?)", row)
             connection.commit()
             for row in cursor.execute(f"SELECT * FROM '{username} nets'"):
                 print(f"DEBUG after buying {net_to_buy}: {row}")
@@ -570,10 +577,20 @@ def buy_net(username: str, net: int):
             return success, net_to_buy, None # reason
         elif not is_net_available(username, net_to_buy) and bundle:
             cursor.execute(f"UPDATE '{username} nets' SET '{net_to_buy}'=1, time='{time_now}'")
-            cursor.execute(f"UPDATE '{username} dex' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
-            cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
+
+            existing = cursor.execute(f"SELECT COUNT(*) FROM '{username} dex' WHERE net='{net_to_buy}'").fetchone()[0]
+
+            if existing > 0:
+                for catch in cursor.execute(f"SELECT time FROM '{username} dex' WHERE net='{net_to_buy}' ORDER BY time DESC LIMIT 1"):
+                    catches.extend(catch)
+                latest_catch = catches[0]
+                cursor.execute(f"UPDATE '{username} dex' SET net_uses=25 WHERE net='{net_to_buy}' AND time=?", (latest_catch,))
+                cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
+            else:
+                row: tuple = (None, time_now, None, None, net_to_buy, coins - price[-1], None, None, 25)
+                cursor.execute(f"INSERT INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?)", row)
             connection.commit()
-            logging.info("[SHARK GAME SQL] Net bought successfully!")
+            logging.info(f"[SHARK GAME SQL] Net bought successfully by {username} and the net uses for {net_to_buy} has been set to 25 at {latest_catch}")
             return success, net_to_buy, None # reason
         elif is_net_available(username, net_to_buy):
             reason = "You already have the net"
