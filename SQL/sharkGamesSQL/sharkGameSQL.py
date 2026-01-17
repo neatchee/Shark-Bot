@@ -29,9 +29,6 @@ cursor = connection.cursor()
 cursor.execute("""CREATE TABLE IF NOT EXISTS sharks
                         (name text PRIMARY KEY, fact text, emoji text, weight real, rarity INTEGER)""") # real is a float
 
-# cursor.execute("""INSERT OR IGNORE INTO tshirts VALUES
-#                     ('SKU12345', 'Black Logo Tshirt', 'Medium', '24.99')""")
-
 # rows: tuple = [(name, fact, emoji, weight) for name, fact, emoji, weight in total]
 
 # cursor.executemany("INSERT OR IGNORE INTO sharks VALUES (?, ?, ?, ?, ?)", rows)
@@ -49,6 +46,15 @@ def get_something(name:str, thing: str):
     for row in cursor.execute(f"SELECT {thing} FROM sharks WHERE name = '{name}'"):
         full.append(row)
     return full
+
+def get_all_facts(name: str):
+    """    
+    :param name: The name of the shark
+    :type name: str
+    :return: Returns all facts about a certain shark
+    :rtype: tuple
+    """
+    return cursor.execute("SELECT * FROM sharks WHERE name = ?", (name, )).fetchone()
 
 def create_dex(username: str, shark_name: str, when_caught: str, net_used: str, rarity: str, net_uses: int):
     cursor.execute(f"""CREATE TABLE IF NOT EXISTS '{username} dex' 
@@ -565,7 +571,7 @@ def buy_net(username: str, net: int):
                 cursor.execute(f"UPDATE '{username} dex' SET coins=? WHERE time=?", (coins - price[-1], latest_catch,))
             else:
                 row: tuple = (None, time_now, None, None, net_to_buy, coins - price[-1], None, None, 5)
-                cursor.execute(f"INSERT INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?)", row)
+                cursor.execute(f"INSERT INTO '{username} dex' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
             connection.commit()
             for row in cursor.execute(f"SELECT * FROM '{username} nets'"):
                 print(f"DEBUG after buying {net_to_buy}: {row}")
@@ -862,7 +868,7 @@ def delete_all_rows_from_nets():
         print(f"Done for {t}")
     connection.commit()
 
-delete_all_rows_from_nets()
-add_row_to_nets()
+# delete_all_rows_from_nets()
+# add_row_to_nets()
 
 connection.commit() #pushes changes to database
