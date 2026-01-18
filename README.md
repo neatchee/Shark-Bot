@@ -19,3 +19,6 @@ The bot has the capability of sending a happy birthday message to a role on the 
 
 ## 6. Leveling system (under construction):
 This feature is still in the works, but it's a levelling system just like Mee6 where it takes the messages people send and add it to their XP and level up whenever necessary.
+
+## 7. Ticketting system (under construction):
+This feature is still being worked on, but it is a ticketting system that would work like mod mail as a simple example
