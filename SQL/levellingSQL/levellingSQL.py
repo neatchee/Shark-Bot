@@ -1,5 +1,12 @@
-import sqlite3
+import sqlite3, logging
 from enum import Enum
+
+# ====== Logging ======
+handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="a")
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(handler)
+
 connection = sqlite3.connect("databases/leveling_shark.db")
 cur = connection.cursor()
 
@@ -13,11 +20,23 @@ class indicies(Enum):
     UNTIL_NEXT_LEVEL = 3
 
 def check_level(username: str):
+    """
+    Docstring for check_level
+    
+    :param username: The user's username
+    :type username: str
+
+    :return level_up: Whether or not the user has levelled up
+    :return level: The level of the user
+    """
     info = []
-    for row in cur.execute(f"SELECT * FROM level WHERE username='{username}'"):
+    for row in cur.execute("SELECT * FROM level WHERE username=?", username):
         info.extend(row) # breaks to tuple into individual indicies
 
+    level_up = False
+
     if info[indicies.EXP.value] == info[indicies.UNTIL_NEXT_LEVEL.value]:
+        level_up = True
         info[indicies.LEVEL.value] += 1
         info[indicies.EXP.value] = 0
         info[indicies.UNTIL_NEXT_LEVEL.value] += 20
@@ -26,24 +45,72 @@ def check_level(username: str):
         cur.execute(f"UPDATE level SET until_next_level={info[indicies.UNTIL_NEXT_LEVEL.value]} WHERE username='{username}'")
     connection.commit() # pushes changes to database
 
-    return info
+    return level_up
+
+def get_info(username: str):
+    """
+    Docstring for get_info
+    
+    :param username: The user's username
+    :type username: str
+    """
+    
+    info = []
+    for row in cur.execute("SELECT * FROM level WHERE username=?", username):
+        info.extend(row)
+    
+    return info[indicies.LEVEL.value], info[indicies.EXP.value], info[indicies.UNTIL_NEXT_LEVEL.value], get_rank(username=username)
+    
+
 
 def add_user(username: str):
-    rows: tuple = [(username, 0, 0, 50)]
-    cur.executemany(f"INSERT OR IGNORE INTO level VALUES (?, ?, ?, ?)", rows)
+    """
+    Docstring for add_user
+    
+    :param username: The user's username
+    :type username: str
+    """
+    rows: tuple = (username, 0, 0, 50)
+    existing = cur.execute("SELECT COUNT(*) FROM level WHERE username=?", (username,)).fetchone()[0]
+    cur.execute(f"INSERT OR IGNORE INTO level (username, level, exp, until_next_level) VALUES (?, ?, ?, ?)", rows)
+    connection.commit()
+    if existing == 0:
+        logging.info(f"[LEVELING SYSTEM] {username} was added to the leveling database")
 
-def add_to_level(username: str):
+def add_to_level(username: str, boost: bool, boost_amount: int):
+    """
+    Docstring for add_to_level
+    
+    :param username: The user's username
+    :type username: str
+    :param boost: Whether or not a boost event is active
+    :type boost: bool
+    :param boost_amount: How much is the boosted amount
+    :type boost_amount: int
+    """
     info = []
-    for row in cur.execute(f"SELECT * FROM level WHERE username='{username}'"):
+    for row in cur.execute(f"SELECT * FROM level WHERE username=?", (username,)):
         info.extend(row) # breaks to tuple into individual indicies
     
-    info[indicies.EXP.value] += 2
+    if not boost:
+        info[indicies.EXP.value] += 2
+    else:
+        info[indicies.EXP.value] += 2 * boost_amount
 
-    cur.execute(f"UPDATE level SET exp={info[indicies.EXP.value]} WHERE username='{username}'")
+    cur.execute(f"UPDATE level SET exp={info[indicies.EXP.value]} WHERE username=?", (username,))
     connection.commit()
 
-    result = check_level(username)
-    return result
+def get_rank(username: str):
+    data = cur.execute("SELECT level, exp FROM level WHERE username=?", (username,)).fetchone()
+
+    if not data:
+        return None
+
+    level, exp = data
+
+    rank = cur.execute("SELECT COUNT(*) + 1 FROM level WHERE level > ? OR (level = ? AND exp > ?)", (level, level, exp)).fetchone()[0]
+    return rank
+
 
 def get_leaderboard():
     rows = []
@@ -51,10 +118,11 @@ def get_leaderboard():
         rows.extend(row)
     return rows
 
-# add_user("spiderbyte2007")
-# print(add_to_level("spiderbyte2007"))
-# add_user("spider")
-# print(add_to_level("spider"))
+add_user("spiderbyte2007")
+add_to_level("spiderbyte2007", False, 2)
+add_user("spider")
+add_to_level("spider", False, 2)
+add_to_level("spider", False, 2)
 print(get_leaderboard())
 
 connection.commit() # pushes changes to database
