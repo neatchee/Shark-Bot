@@ -98,6 +98,9 @@ class levelingLoop:
     
     def __init__(self, bot):
         self.bot = bot
+
+    async def add_users(self, user: discord.Member):
+        ls.add_user(username=user.name)
     
     async def message_handle(self, message: discord.Message):
         boost_event  = config.get("boost")
