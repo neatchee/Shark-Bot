@@ -39,13 +39,45 @@ def check_level(username: str):
         level_up = True
         info[indicies.LEVEL.value] += 1
         info[indicies.EXP.value] = 0
-        info[indicies.UNTIL_NEXT_LEVEL.value] += 20
+        info[indicies.UNTIL_NEXT_LEVEL.value] += calculate_xp_needed(username=username)
         cur.execute(f"UPDATE level SET level={info[indicies.LEVEL.value]} WHERE username='{username}'")
         cur.execute(f"UPDATE level SET exp={info[indicies.EXP.value]} WHERE username='{username}'")
         cur.execute(f"UPDATE level SET until_next_level={info[indicies.UNTIL_NEXT_LEVEL.value]} WHERE username='{username}'")
     connection.commit() # pushes changes to database
 
     return level_up
+
+def calculate_xp_needed(username: str) -> int:
+    """
+    This function is to calculate the XP needed for the next level
+    
+    :param username: The user's username
+    :type username: str
+    """
+    level, xp_needed = cur.execute("SELECT level, until_next_level FROM level WHERE username=?", username).fetchone()
+
+
+    if level >= 0 and level <= 4:
+        xp_needed += 10
+    elif level > 4 and level <= 8:
+        xp_needed += 20
+    elif level > 8 and level <= 12:
+        xp_needed += 30
+    elif level > 12 and level <= 16:
+        xp_needed += 40
+    elif level > 16 and level <= 20:
+        xp_needed += 50
+    elif level > 20 and level <= 24:
+        xp_needed += 60
+    elif level > 24 and level <= 28:
+        xp_needed += 70
+    elif level > 28 and level <= 32:
+        xp_needed += 80
+    elif level > 32 and level <= 36:
+        xp_needed += 90
+    elif level > 36 and level % 4 == 0:
+        xp_needed += 100
+
 
 def get_info(username: str):
     """
@@ -70,7 +102,7 @@ def add_user(username: str):
     :param username: The user's username
     :type username: str
     """
-    rows: tuple = (username, 0, 0, 50)
+    rows: tuple = (username, 0, 0, 30)
     existing = cur.execute("SELECT COUNT(*) FROM level WHERE username=?", (username,)).fetchone()[0]
     cur.execute(f"INSERT OR IGNORE INTO level (username, level, exp, until_next_level) VALUES (?, ?, ?, ?)", rows)
     connection.commit()
