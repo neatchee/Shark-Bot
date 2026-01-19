@@ -151,11 +151,11 @@ def get_leaderboard():
         rows.extend(row)
     return rows
 
-add_user("spiderbyte2007")
-add_to_level("spiderbyte2007", False, 2)
-add_user("spider")
-add_to_level("spider", False, 2)
-add_to_level("spider", False, 2)
-print(get_leaderboard())
+# add_user("spiderbyte2007")
+# add_to_level("spiderbyte2007", False, 2)
+# add_user("spider")
+# add_to_level("spider", False, 2)
+# add_to_level("spider", False, 2)
+# print(get_leaderboard())
 
 connection.commit() # pushes changes to database
