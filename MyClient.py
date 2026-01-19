@@ -210,7 +210,7 @@ class MyClient(discord.Client):
         
 
     # ======= ANNOUNCE ARRIVAL =======
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: discord.Member):
         guild = member.guild
         welcome_channels = config["channels"]["welcome"]
         # The reverse seems illogical, but that is because server names on discord may not match the ones in the YAML file, so for consistency we use the one on the YAML
@@ -227,6 +227,15 @@ class MyClient(discord.Client):
             await channel.send(to_send)
         else:
             logging.warning(f"[WELCOME] Channel not found for {guild_name} ({guild.id})")
+
+        if guild_name == "shark squad":
+            chatting_channels = config["channels"]["chatting"]
+            chatting_channel = guild.get_channel(chatting_channels.get(guild_name))
+
+            message = f"""Tiny fry drifting in sparkling nursery currents. The water shimmers around you, catching the first hints of ocean magic.
+Chat, explore, and let your fins grow — your journey through the glittering ocean has just begun. You'll find more to explore at level 1. {member.mention} """
+
+
 
     # ======= ANNOUNCE DEPARTURE =======
     async def on_member_remove(self, member):
