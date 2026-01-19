@@ -11,7 +11,7 @@ connection = sqlite3.connect("databases/leveling_shark.db")
 cur = connection.cursor()
 
 cur.execute("""CREATE TABLE IF NOT EXISTS level
-                        (username text PRIMARY KEY, level real, exp real, until_next_level real)""")
+                        (username TEXT PRIMARY KEY, level INTEGER, exp INTEGER, until_next_level INTEGER)""")
 
 class indicies(Enum):
     USERNAME = 0
