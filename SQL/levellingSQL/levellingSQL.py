@@ -27,7 +27,6 @@ def check_level(username: str):
     :type username: str
 
     :return level_up: Whether or not the user has levelled up
-    :return level: The level of the user
     """
     info = []
     for row in cur.execute("SELECT * FROM level WHERE username=?", username):
