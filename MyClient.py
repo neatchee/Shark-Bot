@@ -7,6 +7,7 @@ import datetime as dt
 from SQL.levellingSQL import levellingSQL as level
 from enum import Enum
 from loops.birthdayloop.birthdayLoop import BirthdayLoop, SharkLoops, TIME_PER_LOOP, sg
+from loops.levellingloop.levellingLoop import levelingLoop
 from ticketingSystem.Ticket_System import TicketSystem
 
 # ======= Logging/Env =======
@@ -149,32 +150,9 @@ class MyClient(discord.Client):
         super().__init__(*args, **kwargs)
         self.shark_loops = SharkLoops(self)
         self.birthday_loops = BirthdayLoop(self)
+        self.leveling_loop = levelingLoop(self)
         self.ticket_system = TicketSystem(self)
         self._ticket_setup_done = False
-
-    # levelling system
-    @tasks.loop(seconds=5, reconnect=True)
-    async def levels_loop(self, guild_id: int):
-        # loop logic
-        ""
-        
-    @levels_loop.before_loop
-    async def before_levels_loop(self):
-        # ensures cache/guilds/channels are ready before first run
-        await self.wait_until_ready()
-        logging.info("Levelling loop is about to start.")
-    
-    @levels_loop.after_loop
-    async def after_levels_loop(self):
-        if self.levels_loop.is_being_cancelled():
-            logging.info("Levels loop is being cancelled (shutdown).")
-        else:
-            logging.info("levels loop ended normally.")
-
-    @levels_loop.error
-    async def levels_loop_error(self, error):
-        # catch unhandelled exceptions inside the Loop
-        logging.exception("levels loop error: %s", error)
         
     # ======= ON RUN =======
     async def on_ready(self):
@@ -234,8 +212,7 @@ class MyClient(discord.Client):
 
             message = f"""Tiny fry drifting in sparkling nursery currents. The water shimmers around you, catching the first hints of ocean magic.
 Chat, explore, and let your fins grow — your journey through the glittering ocean has just begun. You'll find more to explore at level 1. {member.mention} """
-
-
+            chatting_channel.send(message)
 
     # ======= ANNOUNCE DEPARTURE =======
     async def on_member_remove(self, member):
@@ -467,10 +444,16 @@ Chat, explore, and let your fins grow — your journey through the glittering oc
         # ignore if it's the bot's message
         if message.author.id == self.user.id:
             return
-        
 
         if message.guild == None:
             await message.reply("I do not respond to dms, please message me in a server where my commands work. Thank you!")
+        
+        # leveling system messages
+        if len(message.content) >= 10:    
+            self.leveling_loop.message_handle(message)
+        
+        if message.content.startswith(prefix + "check level"):
+            self.leveling_loop.check_level(message)
 
         if message.content.startswith(prefix + "hello"):
             await message.reply("Hello!")
