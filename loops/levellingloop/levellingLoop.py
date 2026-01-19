@@ -41,7 +41,7 @@ async def create_rank_card(user: discord.Member, rank: int, level: int, xp: int,
     profile_picture = profile_picture.resize(size=(150, 150))
 
     # Make the profile picture circular
-    mask = Image.new(mode='L', size=(150, 150), color=(0, 0, 0))
+    mask = Image.new(mode='L', size=(150, 150), color=0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.ellipse(xy=(0, 0, 150, 150), fill=255) # xy is in the format of x1, y1, x2, y2
 
@@ -103,7 +103,7 @@ class levelingLoop:
         boost_event  = config.get("boost")
         boost_amount = config.get("boost amount")
 
-        username = message.author
+        username = message.author.name
 
         # Make sure the user is added to the database
         ls.add_user(username=username)
@@ -115,26 +115,26 @@ class levelingLoop:
 
         if leveled_up:
             level, exp, exp_needed, rank = ls.get_info(username=username)
-            card = await create_rank_card(user=username, rank=rank, level=level, xp=exp, xp_needed=exp_needed)
+            card = await create_rank_card(user=message.author, rank=rank, level=level, xp=exp, xp_needed=exp_needed)
             channel = message.channel
             message_to_send: str | None
             if level == 1:
-                message_to_send = """Weaving through sunlit coral gardens where each wave catches the light, you enter the Shimmering Shallow Reefs.
-Keep swimming and chatting — the sparkling waters of the Kelp Forest are just ahead. You now have more areas to explore!"""
+                message_to_send = f"""Weaving through sunlit coral gardens where each wave catches the light, you enter the Shimmering Shallow Reefs.
+Keep swimming and chatting — the sparkling waters of the Kelp Forest are just ahead. You now have more areas to explore! {message.author.mention}"""
             elif level == 2:
-                message_to_send = """Mid-depth currents sway the kelp, and tiny flecks of light dance across the water.
-Swim a little further and you'll find your way into the wide, open ocean - so many new friends!"""
+                message_to_send = f"""Mid-depth currents sway the kelp, and tiny flecks of light dance across the water.
+Swim a little further and you'll find your way into the wide, open ocean - so many new friends! {message.author.mention}"""
             elif level == 3:
-                message_to_send = """These waters are vast, the currents gentle but sparkling all around you.
+                message_to_send = f"""These waters are vast, the currents gentle but sparkling all around you.
 Every movement leaves a trail of glittering ripples.
-Keep exploring — the Twilight Zone waits."""
+Keep exploring — the Twilight Zone waits. {message.author.mention}"""
             elif level == 4:
-                message_to_send = """Sunlight fades, but you see tiny bioluminescent glimmers dance along the darkened waves before you.
-Chat, swim, and level up to reach the Abyssal Deep, the ocean's most secret and glittering depths."""
+                message_to_send = f"""Sunlight fades, but you see tiny bioluminescent glimmers dance along the darkened waves before you.
+Chat, swim, and level up to reach the Abyssal Deep, the ocean's most secret and glittering depths. {message.author.mention}"""
             elif level == 5:
-                message_to_send = """You've reached the deepest glittering waters, where rare and magical creatures dwell. A siren's song beckons from down in the deep.
+                message_to_send = f"""You've reached the deepest glittering waters, where rare and magical creatures dwell. A siren's song beckons from down in the deep.
 The currents here shimmer with bioluminescent magic — irl-pics, selfies, venting, and more are now unlocked.
-Swim thoughtfully, respect the depths, and enjoy your sparkling new habitat."""
+Swim thoughtfully, respect the depths, and enjoy your sparkling new habitat. {message.author.mention}"""
             else:
                 message_to_send = None
 
@@ -142,7 +142,8 @@ Swim thoughtfully, respect the depths, and enjoy your sparkling new habitat."""
                 await channel.send(message_to_send, file=card)
     
     async def check_level(self, message: discord.Message):
-        level, exp, exp_needed, rank = ls.get_info(username=message.author)
+        username = message.author.name
+        level, exp, exp_needed, rank = ls.get_info(username=username)
 
         card = await create_rank_card(user=message.author, rank=rank, level=level, xp=exp, xp_needed=exp_needed)
 
