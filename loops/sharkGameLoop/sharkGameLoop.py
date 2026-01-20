@@ -6,8 +6,6 @@ import utils.read_Yaml as RY
 # import your helpers/config
 import SQL.sharkGamesSQL.sharkGameSQL as sg
 
-TIME_PER_LOOP = 1800 #in seconds
-
 CONFIG_PATH = Path(r"config.YAML")
 
 config = RY.read_config(CONFIG=CONFIG_PATH)
@@ -30,16 +28,28 @@ class SharkLoops:
     def __init__(self, client: discord.client):
         self.client = client
         self._loops: dict[int, tasks.Loop] = {} #guild id -> Loop.
+        self.check_interval = self.load_interval()
 
     def is_running(self, guild_id: int) -> bool:
         loop = self._loops.get(guild_id)
         return bool(loop and loop.is_running())
     
+    def load_interval(self):
+        return config.get("time per loop")
+
     def start_for(self, guild_id: int):
         if self.is_running(guild_id=guild_id):
             return
         c = self.client
         async def _tick():
+             # Check if interval changed
+            new_interval = self.load_interval()
+            if new_interval != self.check_interval:
+                self.check_interval = new_interval
+                # change the interval o fthe loop
+                if guild_id in self._loops:
+                    self._loops[guild_id].change_interval(seconds=new_interval)
+
             # The loop body
             names: list[str] = sg.get_names_of_sharks()
             if not names:
@@ -114,7 +124,8 @@ class SharkLoops:
             success: list = []
 
             odds = sg.fishing_odds_shark
-
+            boost: bool = config.get("boost")
+            boost_amount: int = config.get("boost_amount")
             for user in caught_users: # looks through all the keys
                 num = random.randint(0, 100)
                 net = lists_of_after.get(user) if sg.is_net_available(user, lists_of_after.get(user)) else "rope net"
@@ -152,7 +163,10 @@ class SharkLoops:
                     time_caught: str = f"{current_time.date()} {current_time.hour}"
                     success.append(user)
                     sg.create_dex(username=user, shark_name=name_to_drop, when_caught=time_caught, net_used=net, rarity=rarity, net_uses=net_uses)
-                    coins = sg.reward_coins(username=user, rare=rarity, shark=True, shark_name=name_to_drop)
+                    if boost is not None:
+                        coins = sg.reward_coins(username=user, rare=rarity, shark=True, shark_name=name_to_drop, boost=boost, boost_amount=boost_amount)
+                    else:
+                        coins = sg.reward_coins(username=user, rare=rarity, shark=True, shark_name=name_to_drop)
                 sg.remove_net_use(user, net, net_uses - 1)
             if not success:
                 await channel.send(f"A {rarity} {name_to_drop} has escaped, no one caught it. 😞")
@@ -168,7 +182,7 @@ class SharkLoops:
                         people += f"{person}"
                 await channel.send(f"Congratulations to {people} for catching a {rarity} {name_to_drop} 👏. You have been granted {coins}")
 
-        loop = tasks.loop(seconds=TIME_PER_LOOP, reconnect=True)(_tick)
+        loop = tasks.loop(seconds=self.check_interval, reconnect=True)(_tick)
         id_to_name: dict = {int(v): k for k, v in config["guilds"].items()}
         guild_name: str | None = id_to_name.get(guild_id)
 
