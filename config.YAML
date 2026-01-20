@@ -93,3 +93,6 @@ birthday message:
   October: false
   November: false
   December: false
+boost: true
+boost amount: 3
+time per loop: 1800
