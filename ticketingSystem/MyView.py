@@ -133,7 +133,7 @@ class MyView(discord.ui.View):
                 ticket_channel = await guild.create_text_channel(f"tech-support-ticket-{ticket_number}", category=category, topic=f"P{interaction.user.id}")
                 
                 role_ids = ROLE_IDS.get(guild_name)
-                await ticket_channel.set_permissions(guild.get_role(role_ids.get("tech")), send_messages=True, read_messages=True, add_reactions=True, # Set permissions for the staff team
+                await ticket_channel.set_permissions(guild.get_role(role_ids.get("tech support")), send_messages=True, read_messages=True, add_reactions=True, # Set permissions for the staff team
                                                         embed_links=True, attach_files=True, read_message_history=True, external_emojis=True)
                 await ticket_channel.set_permissions(guild.get_role(role_ids.get("mods")), send_messages=True, read_messages=True, add_reactions=True, # Set permissions for the staff team
                                                         embed_links=True, attach_files=True, read_message_history=True, external_emojis=True)
