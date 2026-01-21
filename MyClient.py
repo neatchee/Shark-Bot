@@ -213,7 +213,7 @@ class MyClient(discord.Client):
             chatting_channels = config["channels"]["chatting"]
             chatting_channel = guild.get_channel(chatting_channels.get(guild_name))
 
-            message = f"""Tiny fry drifting in sparkling nursery currents. The water shimmers around you, catching the first hints of ocean magic.
+            message = f"""_Tiny fry drifting in sparkling nursery currents. The water shimmers around you, catching the first hints of ocean magic._
 Chat, explore, and let your fins grow — your journey through the glittering ocean has just begun. You'll find more to explore at level 1. {member.mention} """
             await chatting_channel.send(message)
             await self.leveling_loop.add_users(user=member)
