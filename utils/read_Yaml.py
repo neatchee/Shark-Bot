@@ -1,6 +1,6 @@
 import yaml
 from pathlib import Path
-from core import AppConfig
+from utils.core import AppConfig
 
 def load_config(CONFIG: Path):
     """
