@@ -877,6 +877,14 @@ def add_coins(username: str, coins_to_add: str):
 
     connection.commit()
 
+# BAIT SET UP
+def setup_bait_shop():
+    cursor.execute("""CREATE TABLE IF NOT EXISTS bait
+                            (bait text PRIMARY KEY, price real)""")
+    baits  = ["chum", "worms", ""]
+    prices = [120]
+
+
 # create_dex("spiderbyte2007", "Bull Shark", "2025-10-18")
 
 # create_dex("harunkal", "Bull Shark", "2025-10-21", "rope net", "normal")
