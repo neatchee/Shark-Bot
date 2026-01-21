@@ -82,7 +82,7 @@ class MyClient(discord.Client):
 
         for guild in self.guilds:
 
-            await self.reaction_handler.ensure_react_roles_message_internal(guild)
+            await self.ensure_react_roles_message(guild)
             guild_name: str = id_to_name.get(guild.id)
             
             if guild_name == "shark squad":
