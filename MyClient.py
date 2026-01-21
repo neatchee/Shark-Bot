@@ -70,7 +70,7 @@ class MyClient(discord.Client):
         self.leveling_loop = levelingLoop(self)
         self.ticket_system = TicketSystem(self)
         self._ticket_setup_done: dict = config.set_up_done
-        self.reaction_handler = reaction_handler(config_path=CONFIG_PATH, roles_per_guild=roles_per_gid(GIDS, ROLES))
+        self.reaction_handler = reaction_handler(config_path=CONFIG_PATH, roles_per_guild=roles_per_gid(GIDS, ROLES), bot=self)
         
     # ======= ON RUN =======
     async def on_ready(self):
