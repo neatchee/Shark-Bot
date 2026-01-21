@@ -158,8 +158,7 @@ class levelingLoop:
         leveled_up = ls.check_level(username=username) # leveled_up is a boolean and level is an integer
 
         if leveled_up:
-            level, exp, exp_needed, rank = ls.get_info(username=username)
-            card = await create_rank_card(user=message.author, rank=rank, level=level, xp=exp, xp_needed=exp_needed)
+            level, _, _, _= ls.get_info(username=username)
             channel = message.channel
             message_to_send: str | None
             if level == 1:
@@ -185,7 +184,7 @@ Swim thoughtfully, respect the depths, and enjoy your sparkling new habitat. {me
             await self.add_role(message.author)
 
             if message_to_send is not None:
-                await channel.send(message_to_send, file=card)
+                await channel.send(message_to_send)
     
     async def check_level(self, message: discord.Message):
         username = message.author.name
