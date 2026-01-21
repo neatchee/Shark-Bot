@@ -49,8 +49,7 @@ def is_rr_message_id_in_config(config: AppConfig, guild_name: str):
 
 def get_channel_id(config: AppConfig, guild_name: str, channel: str):
 
-    channels = config.channels
-    channels = channels.get(channel)
+    channels = config.channels.get(channel)
 
     if channels is None:
         return "Channel not in config"
