@@ -35,6 +35,7 @@ class SharkLoops:
         return bool(loop and loop.is_running())
     
     def load_interval(self):
+        config = RY.read_config(CONFIG=CONFIG_PATH)
         return config.get("time per loop")
 
     def start_for(self, guild_id: int):
@@ -42,7 +43,7 @@ class SharkLoops:
             return
         c = self.client
         async def _tick():
-             # Check if interval changed
+            # Check if interval changed
             new_interval = self.load_interval()
             if new_interval != self.check_interval:
                 self.check_interval = new_interval
