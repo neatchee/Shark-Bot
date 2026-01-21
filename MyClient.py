@@ -536,6 +536,8 @@ Shark Catch Game:
         if message.content.startswith(prefix + "fish"):
             user = message.author
 
+            config = RY.read_config(CONFIG_PATH)
+
             owned_nets, about_to_break, broken, net_uses = sg.get_net_availability(message.author)
 
             await message.reply("Which net do you want to use?🎣 Type `?net name` to use it or send `cancel` to cancel! If you do not own any nets send `?none` to use a basic net. (You have 30 seconds to send one of the two)")
