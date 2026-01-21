@@ -1,6 +1,6 @@
 import logging, discord, datetime as dt
 from discord.ext import tasks
-from ..sharkGameLoop.sharkGameLoop import get_channel_id, config, RY, CONFIG_PATH, SharkLoops, sg
+from ..sharkGameLoop.sharkGameLoop import get_channel_id, RY, CONFIG_PATH, SharkLoops, sg
 from zoneinfo import ZoneInfo
 
 def mark_reminder_as_done(month: str):
@@ -37,6 +37,7 @@ class BirthdayLoop:
         c = self.client
 
         async def _tick():
+            config: dict = RY.read_config(CONFIG_PATH)
             # The Loop Body
             current_date = dt.datetime.now(central).date()
             birthday_messages = config["birthday message"]
@@ -99,7 +100,7 @@ class BirthdayLoop:
                         logging.info("Said happy birthday to December babies!")
                         mark_reminder_as_done("December")
         
-        loop = tasks.loop(hours=12, reconnect=True)(_tick)
+        loop = tasks.loop(hours=13, reconnect=True)(_tick)
         
         @loop.before_loop
         async def _before():
