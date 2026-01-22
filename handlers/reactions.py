@@ -14,8 +14,7 @@ class reaction_handler:
     async def ensure_react_roles_message_internal(self, guild: discord.Guild):
         # check for guild config, if none found then skip
         if not self.config.is_guild_in_config(guild_id=guild.id):
-            logging.error(f"Guild {guild.name} is not in the self.config. Skipping")
-            return
+            raise ValueError(f"Guild {guild.name} is not in the config. Skipping")
 
         assert(self.config.guilds)
         assert(isinstance(self.config.guilds[guild.id], str))
@@ -26,8 +25,7 @@ class reaction_handler:
         # print(react_role_messages)
 
         if not self.config.is_rr_message_id_in_config(guild_name=guild_name):
-            logging.error(f"Guild {guild.name} is does not have a react roles message ID Key")
-            return        
+            raise KeyError(f"Guild {guild.name} does not have a react roles message ID Key")
 
         for rr_name, rr_message in react_role_messages:
             # print(react_role_messages[rr_message])
@@ -78,14 +76,10 @@ class reaction_handler:
                     except discord.HTTPException:
                         logging.error(f"[RR could not edit react-roles message {rr_message} in {guild_name}]")
                 # ---------------------------------------------------------------------------------------------
-                
-                
                 continue
-            
 
             if channel is None or not isinstance(channel, discord.TextChannel):
-                logging.error(f"[RR] No valid channel configured for {guild_name}")
-                return
+                raise LookupError(f"[RR] No valid channel configured for {guild_name}")
 
             mapping = self.ROLES_PER_GUILD[guild.id].get(rr_message)
             # print("current mapping: ",mapping)
