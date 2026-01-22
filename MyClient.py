@@ -1,12 +1,10 @@
-import discord, os, logging, asyncio, random, time
+import discord, os, logging, asyncio, random
 from dataclasses import dataclass
 from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 from pathlib import Path
 import utils.read_Yaml as RY
-from discord.ext import tasks
 import datetime as dt
-from SQL.levellingSQL import levellingSQL as level
 from enum import Enum
 from loops.birthdayloop.birthdayLoop import BirthdayLoop, SharkLoops, sg
 from loops.levellingloop.levellingLoop import levelingLoop
