@@ -1,5 +1,10 @@
-import discord, os, logging, asyncio, random
-from pydantic import ValidationError
+import discord
+import os
+import logging
+import asyncio
+import random
+from dataclasses import dataclass
+from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 from pathlib import Path
 import utils.read_Yaml as RY
@@ -9,8 +14,8 @@ from loops.birthdayloop.birthdayLoop import BirthdayLoop, SharkLoops, sg
 from loops.levellingloop.levellingLoop import levelingLoop
 from ticketingSystem.Ticket_System import TicketSystem
 
-from data.gids import roles_per_gid
-from handlers.reactions import reaction_handler, AppConfig
+import data.gids as gids
+from handlers.reactions import reaction_handler
 
 # ======= Logging/Env =======
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="a")
@@ -19,7 +24,7 @@ root_logger.setLevel(logging.INFO)
 root_logger.addHandler(handler)
 load_dotenv()
 token = os.getenv("token")
-
+assert token, "No token found in envvars. Impossible to continue."
 # ======= CONFIG =======
 CONFIG_PATH = Path(r"config.YAML")
 TICKET_CONFIG_PATH = Path(r"ticketingSystem\ticketing.yaml")
@@ -41,7 +46,8 @@ try:
         set_up_done = raw_config["set up done"]
     )
 except ValidationError as e:
-    print(e)
+    logging.critical("Unable to load config. Inner Exception:\n{e}")
+    raise e
 
 GIDS: dict = config.guilds
 ROLES: dict = config.roles
@@ -58,9 +64,6 @@ class sharks_index(Enum):
 
 # ======= BOT =======
 class MyClient(discord.Client):
-    # Suppress error on the User attribute being None since it fills up later
-    user: discord.ClientUser
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shark_loops = SharkLoops(self)
@@ -72,6 +75,7 @@ class MyClient(discord.Client):
         
     # ======= ON RUN =======
     async def on_ready(self):
+        assert(self.user is not None)
         print(f"Logged in as {self.user} (ID: {self.user.id})")
         print("----------------------------------------------")
         logging.info(f"Logged in as {self.user} (ID: {self.user.id})")
@@ -79,15 +83,26 @@ class MyClient(discord.Client):
         id_to_name: dict = {int(v): k for k, v in config.guilds.items()}
 
         for guild in self.guilds:
-
-            await self.reaction_handler.ensure_react_roles_message_internal(config=config, guild=guild)
-            guild_name: str = id_to_name.get(guild.id)
+            await self.reaction_handler.ensure_react_roles_message_internal(config, guild)
+            guild_name: str | None = id_to_name.get(guild.id)
             
             if guild_name == "shark squad":
                 self.birthday_loops.start_for(guild.id)
                 for member in guild.members:
-                    added = await self.leveling_loop.add_users(user=member)
-                    if added: await self.leveling_loop.add_role(user=member)
+                    try:
+                        user_added = await self.leveling_loop.add_users(user=member)
+                    except Exception as e:
+                        raise e
+
+                    if user_added:
+                        try:
+                            role_added = await self.leveling_loop.add_role(user=member)
+                            if role_added is None:
+                                logging.warning(f"Failed to add role to member {member}, returned None")
+                        except Exception as e:
+                            raise e
+                    else:
+                        logging.warning(f"Failed to add user with member {member}, returned None")
 
             
             if not self._ticket_setup_done.get(guild_name):
@@ -96,13 +111,19 @@ class MyClient(discord.Client):
                 logging.info("[TICKETING SYSTEM] Ticket system set up, checking for messages now")
 
                 embed_message_ids = ticket_config.get("embed message ids")                
-                if embed_message_ids.get(guild_name) == 0:
-                    channel_id = ticket_config.get("ticket channels").get(guild_name)
+                if embed_message_ids and embed_message_ids.get(guild_name) == 0:
+                    channel_id = ticket_config["ticket channels"].get(guild_name)
                     if channel_id is not None or channel_id != 0:
                         channel = guild.get_channel(channel_id)
+                        if channel and isinstance(channel, discord.TextChannel):
+                            await self.ticket_system.send_ticket_panel(channel=channel)
+                        else:
+                            logging.warning(f"[TICKET SYSTEM] Channel {channel_id} does not exist or is not a TextChannel")
+                            return
                     else:
                         logging.warning(f"[TICKET SYSTEM] Channel ID for {guild_name} is either None or Zero!")
-                    await self.ticket_system.send_ticket_panel(channel=channel)
+                        return
+                    
                     logging.info(f"[TICKETING SYSTEM] Ticket embed sent to {guild_name}")
                 
                 self._ticket_setup_done[guild_name] = True
@@ -110,41 +131,45 @@ class MyClient(discord.Client):
     # ======= ANNOUNCE ARRIVAL =======
     async def on_member_join(self, member: discord.Member):
         guild = member.guild
-        welcome_channels = config["channels"]["welcome"]
+        welcome_channels = config.channels["welcome"]
         # The reverse seems illogical, but that is because server names on discord may not match the ones in the YAML file, so for consistency we use the one on the YAML
         id_to_name: dict = {int(v): k for k, v in config.guilds.items()}
-        guild_name: str = id_to_name.get(guild.id) 
+        guild_name: str = id_to_name[guild.id]
         channel_id = welcome_channels.get(guild_name)
         if not channel_id:
             logging.warning(f"[WELCOME] No channel configured for {guild_name} ({guild.id})")
             return
         
         channel = guild.get_channel(channel_id)
-        if channel is not None:
+        if channel and isinstance(channel, discord.TextChannel):
             to_send = f'Welcome {member.mention} to {guild_name}! Hope you enjoy your stay!'
             await channel.send(to_send)
         else:
             logging.warning(f"[WELCOME] Channel not found for {guild_name} ({guild.id})")
 
         if guild_name == "shark squad":
-            chatting_channels = config["channels"]["chatting"]
-            chatting_channel = guild.get_channel(chatting_channels.get(guild_name))
+            chatting_channel = guild.get_channel(config.channels["chatting"][guild_name])
 
             message = f"""_Tiny fry drifting in sparkling nursery currents. The water shimmers around you, catching the first hints of ocean magic._
 Chat, explore, and let your fins grow — your journey through the glittering ocean has just begun. You'll find more to explore at level 1. {member.mention} """
-            await chatting_channel.send(message)
+            if chatting_channel and isinstance(chatting_channel, discord.TextChannel):
+                await chatting_channel.send(message)
             await self.leveling_loop.add_users(user=member)
             await self.leveling_loop.add_role(user=member)
 
     # ======= ANNOUNCE DEPARTURE =======
     async def on_member_remove(self, member):
         guild = member.guild
-        welcome_channels = config["channels"]["welcome"]
+        welcome_channels = config.channels["welcome"]
         # The reverse seems illogical, but that is because server names on discord may not match the ones in the YAML file, so for consistency we use the one on the YAML
         id_to_name: dict = {int(v): k for k, v in config.guilds.items()}
-        guild_name: str = id_to_name.get(guild.id) 
+        guild_name: str | None = id_to_name.get(guild.id)
+        if guild_name is None:
+            logging.warning(f"[GOODBYE] Member does not contain {guild.id}")
+            return
+
         channel_id = welcome_channels.get(guild_name)
-        if not channel_id:
+        if channel_id is None:
             logging.warning(f"[GOODBYE] No channel configured for {guild_name} ({guild.id})")
             return
         
@@ -172,15 +197,18 @@ Chat, explore, and let your fins grow — your journey through the glittering oc
         await self.reaction_handler.on_raw_reaction_remove_internal(payload=payload, config=config)
 
     async def on_message(self, message: discord.Message):
+        user = message.author
+
         # ignore if it's the bot's message
-        if message.author.id == self.user.id:
+        if self.user and user.id == self.user.id:
             return
 
-        if message.guild == None:
+        if message.guild is None:
             await message.reply("I do not respond to dms, please message me in a server where my commands work. Thank you!")
-        
-        if message.content.startswith(prefix + "emoji"):
+            return
+        elif message.content.startswith(prefix + "emoji"):
             await message.reply(":ZeroTwoBonkbyliliiet112:")
+            return
 
         # leveling system messages
         id_to_name: dict = {int(v): k for k, v in config.guilds.items()}
@@ -224,8 +252,7 @@ A few notes:
             await message.reply(rules_part2)
 
         if message.content.startswith(prefix + "describe game"):
-            TIME_PER_LOOP = config.get("time per loop")
-            send = f"The shark catch game is a game where once every {TIME_PER_LOOP / 60} minutes a shark will appear for two minutes and everyone will have the opportunity to try and catch it! Collect as many sharks as you can and gain coins that can be used to buy better nets! Good luck!"
+            send = f"The shark catch game is a game where once every {config.time_per_loop / 60} minutes a shark will appear for two minutes and everyone will have the opportunity to try and catch it! Collect as many sharks as you can and gain coins that can be used to buy better nets! Good luck!"
             await message.reply(send)
 
         if message.content.startswith(prefix + "help"):
@@ -263,17 +290,15 @@ Shark Catch Game:
                 await message.reply("Huh? I'm not running.")
 
         if message.content.startswith(prefix + "fish"):
-            user = message.author
-
             config_2 = RY.read_config(CONFIG_PATH)
 
-            owned_nets, about_to_break, broken, net_uses = sg.get_net_availability(message.author)
+            owned_nets, about_to_break, broken, net_uses = sg.get_net_availability(str(user))
 
             await message.reply("Which net do you want to use?🎣 Type `?net name` to use it or send `cancel` to cancel! If you do not own any nets send `?none` to use a basic net. (You have 30 seconds to send one of the two)")
 
             def check(m: discord.Message):
                 return (
-                    m.author.id == message.author.id and
+                    m.author.id == user.id and
                     m.channel.id == message.channel.id and
                     (m.content.strip().lower() == "cancel" or m.content.strip().startswith(prefix))
                 )
@@ -282,6 +307,7 @@ Shark Catch Game:
                 follow = await client.wait_for("message", check=check, timeout=30)
             except asyncio.TimeoutError:
                 await message.reply("Timed out, try again with `?fish`")
+                return
 
             logging.info(follow.content.strip().lower()[1:])
 
@@ -324,10 +350,10 @@ Shark Catch Game:
                 await channel.send("Net not found, defaulting to basic net. Fishing now!🎣")
                 net = "rope net"
             
-            fish_odds = sg.fishing_odds_fish(username=user, net_used=net)
+            fish_odds = sg.fishing_odds_fish(username=str(user), net_used=net)
 
-            boost = config_2.get("boost")
-            boost_amount = config_2.get("boost amount")
+            boost = config_2.get("boost") or False
+            boost_amount = config_2.get("boost amount") or 2
 
             rand_int = random.randint(0, 99)
             if rand_int <= fish_odds: #did it catch anything
@@ -337,63 +363,63 @@ Shark Catch Game:
                     rand_idx = random.randint(0, len(names) - 1) 
                     current_time = dt.datetime.now()
                     time_caught: str = f"{current_time.date()} {current_time.hour}"
-                    sg.create_dex(user, names[rand_idx], time_caught, net, "normal", net_uses)
-                    coin = sg.reward_coins(user, shark=True, rare="normal", shark_name=names[rand_idx])
+                    sg.create_dex(str(user), names[rand_idx], time_caught, net, "normal", net_uses)
+                    coin = sg.reward_coins(str(user), shark=True, rare="normal", shark_name=names[rand_idx])
                     await channel.send(f"Oh lord, you have caught a shark that has randomly stumbled it's way here! 🦈 Congratulations on the {names[rand_idx]}. You have been given {coin} coins.")
                 elif catch_type <= 25: # large fish 20% chance
                     rarity = random.randint(1, 100)
                     if rarity <= 10:
-                        coin = sg.reward_coins(user, False, "legendary", size="large", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "legendary")
+                        coin = sg.reward_coins(str(user), False, "legendary", size="large", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "legendary")
                         await channel.send(f"Congratulations! You have caught a large legendary fish! 🐟 You have been rewarded {coin} coins.")
                     elif rarity <= 40:
-                        coin = sg.reward_coins(user, False, "shiny", size="large", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "shiny")
+                        coin = sg.reward_coins(str(user), False, "shiny", size="large", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "shiny")
                         await channel.send(f"Congratulations! You have caught a large shiny fish! 🐟 You have been rewarded {coin} coins")
                     else:
-                        coin = sg.reward_coins(user, False, "normal", size="large", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "common")
+                        coin = sg.reward_coins(str(user), False, "normal", size="large", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "common")
                         await channel.send(f"Congratulations! You have caught a large normal fish! 🐟 You have been rewarded {coin} coins")
                 elif catch_type <= 50: # medium fish 25% chance
                     rarity = random.randint(1, 100)
                     if rarity <= 10:
-                        coin = sg.reward_coins(user, False, "legendary", size="medium", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "legendary")
+                        coin = sg.reward_coins(str(user), False, "legendary", size="medium", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "legendary")
                         await channel.send(f"Congratulations! You have caught a medium legendary fish! 🐟 You have been rewarded {coin} coins")
                     elif rarity <= 40:
-                        coin = sg.reward_coins(user, False, "shiny", size="medium", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "shiny")
+                        coin = sg.reward_coins(str(user), False, "shiny", size="medium", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "shiny")
                         await channel.send(f"Congratulations! You have caught a medium shiny fish! 🐟 You have been rewarded {coin} coins")
                     else:
-                        coin = sg.reward_coins(user, False, "normal", size="medium", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "common")
+                        coin = sg.reward_coins(str(user), False, "normal", size="medium", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "common")
                         await channel.send(f"Congratulations! You have caught a medium normal fish! 🐟 You have been rewarded {coin} coins")
                 elif catch_type <= 80: # small fish 30%
                     rarity = random.randint(1, 100)
                     if rarity <= 10:
-                        coin = sg.reward_coins(user, False, "legendary", size="small", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "legendary")
+                        coin = sg.reward_coins(str(user), False, "legendary", size="small", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "legendary")
                         await channel.send(f"Congratulations! You have caught a small legendary fish! 🐟 You have been rewarded {coin} coins")
                     elif rarity <= 40:
-                        coin = sg.reward_coins(user, False, "shiny", size="small", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "shiny")
+                        coin = sg.reward_coins(str(user), False, "shiny", size="small", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "shiny")
                         await channel.send(f"Congratulations! You have caught a small shiny fish! 🐟 You have been rewarded {coin} coins")
                     else:
-                        coin = sg.reward_coins(user, False, "normal", size="small", boost=boost, boost_amount=boost_amount)
-                        sg.fish_caught(user, "common")
+                        coin = sg.reward_coins(str(user), False, "normal", size="small", boost=boost, boost_amount=boost_amount)
+                        sg.fish_caught(str(user), "common")
                         await channel.send(f"Congratulations! You have caught a small normal fish! 🐟 You have been rewarded {coin} coins")
                 else:
-                    coin = sg.reward_coins(user, False, "trash", boost=boost, boost_amount=boost_amount)
+                    coin = sg.reward_coins(str(user), False, "trash", boost=boost, boost_amount=boost_amount)
                     await channel.send(f"Oh no! You have caught trash 🗑️. You have been rewarded {coin} coins")
             else:
-                await channel.send(f"Unfortunate, you have not caught anything. 😞")
+                await channel.send("Unfortunate, you have not caught anything. 😞")
             if net != "rope net" and net is not None:
-                sg.remove_net_use(user, net, net_uses - 1)
+                sg.remove_net_use(str(user), net, net_uses - 1)
 
         if message.content.startswith(prefix + "get dex"):
-            user = message.author
-
-            dex, coins = sg.get_basic_dex(user)
+            basic_dex = sg.get_basic_dex(str(user))
+            (dex, coins) = basic_dex if basic_dex else ({}, None)
+            
             if dex is None:
                 await message.reply("You have not caught any sharks yet! You also have 0 coins")
             else:
@@ -403,8 +429,8 @@ Shark Catch Game:
                 message_3: str = ""
 
                 for shark in dex:
-                    s = "s" if dex.get(shark) > 1 else ""
-                    string = f"{dex.get(shark)} {shark}{s} 🦈 \n"
+                    s = "s" if dex[shark] > 1 else ""
+                    string = f"{dex[shark]} {shark}{s} 🦈 \n"
                     if len(message_1 + string) < 2000:
                         message_1 += string 
                     elif len(message_2 + string) < 2000:
@@ -413,11 +439,11 @@ Shark Catch Game:
                         message_3 += string
                     
                 if len(message_2) == 0:
-                    message_1 += f"You also have {coins} coins"
+                    message_1 += f"You also have {coins or 0} coins"
                 elif len(message_3) == 0:
-                    message_2 += f"You also have {coins} coins"
+                    message_2 += f"You also have {coins or 0} coins"
                 else:
-                    message_3 += f"You also have {coins} coins"
+                    message_3 += f"You also have {coins or 0} coins"
 
                 
                 await message.reply(message_1)
@@ -428,50 +454,46 @@ Shark Catch Game:
                     await channel.send(message_3)
 
         if message.content.startswith(prefix + "get dex detailed"):
-            user = message.author
-            
-            dex = sg.get_dex(user)
+            dex = sg.get_dex(str(user))
 
-            if dex is None:
+            if dex:
+                message_1: str = "Here's your sharkdex: \n"
+                # back ups in case the 2000 character limit discord has is reached
+                message_2: str = ""
+                message_3: str = ""
+
+                index = 1
+
+                for item in dex:
+                    string = f"""shark {index}: 
+    name: {item[sharks_index.SHARK_NAME.value]} 🦈
+    rarity: {item[sharks_index.RARITY.value]} 
+    time caught: {item[sharks_index.TIME_CAUGHT.value]} 🕰️
+    facts: {item[sharks_index.SHARK_FACT.value]} 📰
+    weight: {item[sharks_index.SHARK_WEIGHT.value]} ⚖️
+    net used: {item[sharks_index.NET_TYPE.value]} 🎣
+    coins balance: {item[sharks_index.COINS.value]} 🪙
+
+    """
+                    if len(message_1 + string) < 2000:
+                        message_1 += string
+                    elif len(message_2 + string) < 2000:
+                        message_2 += string
+                    else:
+                        message_3 += string
+
+                    index += 1
+
+                await user.send(message_1)
+                if len(message_2) != 0:
+                    await user.send(message_2)
+                if len(message_3) != 0:
+                    await user.send(message_3)
+            else:
                 await user.send("You have not caught a shark so you have no dex, go catch sharks!")
 
-            message_1: str = "Here's your sharkdex: \n"
-            # back ups in case the 2000 character limit discord has is reached
-            message_2: str
-            message_3: str
-
-            index = 1
-
-            for item in dex:
-
-                string = f"""shark {index}: 
-name: {item[sharks_index.SHARK_NAME.value]} 🦈
-rarity: {item[sharks_index.RARITY.value]} 
-time caught: {item[sharks_index.TIME_CAUGHT.value]} 🕰️
-facts: {item[sharks_index.SHARK_FACT.value]} 📰
-weight: {item[sharks_index.SHARK_WEIGHT.value]} ⚖️
-net used: {item[sharks_index.NET_TYPE.value]} 🎣
-coins balance: {item[sharks_index.COINS.value]} 🪙
-
-"""
-                if len(message_1 + string) < 2000:
-                    message_1 += string
-                elif len(message_2 + string) < 2000:
-                    message_2 += string
-                else:
-                    message_3 += string
-
-                index += 1
-
-            await user.send(message_1)
-            if len(message_2) != 0:
-                await user.send(message_2)
-            if len(message_3) != 0:
-                await user.send(message_3)
-
         if message.content.startswith(prefix + "my nets"):
-            user = message.author
-            nets, about_to_break, _, _ = sg.get_net_availability(user)
+            nets, about_to_break, _, _ = sg.get_net_availability(str(user))
             send = "Here's your available nets: \n"
             i = 1
             for net in nets:
@@ -486,13 +508,13 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
             await message.reply(send)
         
         if message.content.startswith(prefix + "coins"):
-            coins = 0 if sg.check_currency(message.author) is None else sg.check_currency(message.author)
+            coins = 0 if sg.check_currency(str(user)) is None else sg.check_currency(str(user))
 
             await message.reply(f"You have {coins} coins!")
 
         if message.content.startswith(prefix + "add coins"):
 
-            sg.add_coins(message.author, 500)
+            sg.add_coins(str(user), str(500))
 
             await message.reply("done")
 
@@ -501,9 +523,6 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
             send = "Choose a net to buy: (choose within the next 30 seconds) \n To choose type the number of the net or type cancel to cancel \n"
 
             nets, prices = sg.get_nets()
-            
-            
-            follow_found = False
             
             i = 1
             for net in nets:
@@ -520,34 +539,34 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
                 try:
                     int(m.content.strip())
                     isInt = True
-                except:
+                except Exception:
                     isInt = False
                 return (
-                    m.author.id == message.author.id and
+                    m.author.id == user.id and
                     m.channel.id == message.channel.id and
                     (m.content.strip().lower() == "cancel" or isInt)
                 )
             
+            follow = None
+
             try:
                 follow = await client.wait_for("message", check=check, timeout=30)
-                follow_found = True
             except asyncio.TimeoutError:
                 await message.reply("Timed out, try again with `?buy net`")
-                follow_found = False
                 
-            if follow_found:
+            if follow:
                 logging.info(follow.content.strip().lower())
 
                 if follow.content.strip().lower() == "cancel":
                     await follow.reply("Cancelled.")
                     return
                 # print(nets)
-                success, net_name, reason = sg.buy_net(message.author, int(follow.content.strip().lower()))
+                success, net_name, reason = sg.buy_net(str(user), int(follow.content.strip().lower())) or (None, None, None)
                 if success:
-                    logging.info(f"Found net: {net_name} for {message.author}")
+                    logging.info(f"Found net: {net_name} for {user}")
                     await follow.reply(f"Successfully bought {net_name}")
                 else:
-                    logging.info(f"Could not buy {net_name} for {message.author}")
+                    logging.info(f"Could not buy {net_name} for {user}")
                     await follow.reply(f"Could not buy net because {reason}")
 
         if message.content.startswith(prefix + "shark facts"):
@@ -555,17 +574,23 @@ coins balance: {item[sharks_index.COINS.value]} 🪙
             
             def check(m: discord.Message):
                 return (
-                    m.author.id == message.author.id and
+                    m.author.id == user.id and
                     m.channel.id == message.channel.id and
                     (m.content.strip().lower() == "cancel" or m.content.strip().startswith(prefix))
                 )
-            
+
+            follow = None
+
             try:
                 follow = await client.wait_for("message", check=check, timeout=30)
             except asyncio.TimeoutError:
                 await message.reply("Timed out, try again with `?shark facts`")
+                return
+            except Exception:
+                await message.reply("Unexpected error. Try again or report this bug to the bot's author")
+                return
 
-            if follow.content.strip().lower() == "cancel":
+            if follow and follow.content.strip().lower() == "cancel":
                 await follow.reply("Cancelled.")
                 return
             
