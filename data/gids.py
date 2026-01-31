@@ -66,7 +66,8 @@ def roles_per_gid(gids: dict[str, int], roles: dict[str, dict[str, int]]):
                 discord.PartialEmoji(name='🤺'): roles["friend"]["Nightreign"],
                 discord.PartialEmoji(name='🔫'): roles["friend"]["Destiney"],
                 '<a:animateduwu:1279478093278609491>': roles["friend"]["DNA"],
-                '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': roles["friend"]["ZZZ"]
+                '<:Zerotwosurprisedbyliliiet112:1318361087833538631>': roles["friend"]["ZZZ"],
+                '<:hello:1446858982403739689>': roles["friend"]["Gaming Friend"]
             }
         }    
     }

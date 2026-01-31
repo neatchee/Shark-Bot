@@ -174,6 +174,9 @@ Chat, explore, and let your fins grow — your journey through the glittering oc
         if message.guild == None:
             await message.reply("I do not respond to dms, please message me in a server where my commands work. Thank you!")
         
+        if message.content.startswith(prefix + "emoji"):
+            await message.reply(":ZeroTwoBonkbyliliiet112:")
+
         # leveling system messages
         id_to_name: dict = {int(v): k for k, v in config.guilds.items()}
         if len(message.content) >= 10 and id_to_name.get(message.guild.id) == "shark squad":
