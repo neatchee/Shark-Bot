@@ -1,19 +1,16 @@
-import discord, os, logging, asyncio, random, time
-from dataclasses import dataclass
-from pydantic import BaseModel, ValidationError
+import discord, os, logging, asyncio, random
+from pydantic import ValidationError
 from dotenv import load_dotenv
 from pathlib import Path
 import utils.read_Yaml as RY
-from discord.ext import tasks
 import datetime as dt
-from SQL.levellingSQL import levellingSQL as level
 from enum import Enum
 from loops.birthdayloop.birthdayLoop import BirthdayLoop, SharkLoops, sg
 from loops.levellingloop.levellingLoop import levelingLoop
 from ticketingSystem.Ticket_System import TicketSystem
 
-import data
-import handlers
+from data.gids import roles_per_gid
+from handlers.reactions import reaction_handler, AppConfig
 
 # ======= Logging/Env =======
 handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="a")
@@ -31,20 +28,8 @@ raw_config = RY.read_config(CONFIG=CONFIG_PATH)
 ticket_config = RY.read_config(CONFIG=TICKET_CONFIG_PATH)
 prefix: str = "?"
 
-@dataclass
-class AppConfig(BaseModel):
-    guilds: dict[str, int]
-    roles: dict[str, dict[str, int]]
-    channels: dict[str, dict[str, int]]
-    guild_role_messages: dict[str, dict[str, int]]
-    birthday_message: dict[str, bool]
-    boost: bool
-    boost_amount: int
-    time_per_loop: int
-    set_up_done: dict[str, bool]
-
 try:
-    config = AppConfig(
+    config = AppConfig.model_construct(
         guilds = raw_config["guilds"],
         roles = raw_config["roles"],
         channels = raw_config["channels"],
@@ -82,8 +67,8 @@ class MyClient(discord.Client):
         self.birthday_loops = BirthdayLoop(self)
         self.leveling_loop = levelingLoop(self)
         self.ticket_system = TicketSystem(self)
-        self._ticket_setup_done: dict = config.get("set up done")
-        self.reaction_handler = handlers.roles(CONFIG_PATH, data.gids.roles_per_gid(GIDS, ROLES))
+        self._ticket_setup_done: dict = config.set_up_done
+        self.reaction_handler = reaction_handler(config_path=CONFIG_PATH, roles_per_guild=roles_per_gid(GIDS, ROLES), bot=self)
         
     # ======= ON RUN =======
     async def on_ready(self):
@@ -173,13 +158,13 @@ Chat, explore, and let your fins grow — your journey through the glittering oc
                 await channel.send(to_send)
 
     async def ensure_react_roles_message(self, guild: discord.Guild):
-        self.reaction_handler.ensure_react_roles_message_internal(guild)
+        await self.reaction_handler.ensure_react_roles_message_internal(guild=guild, config=config)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        self.reaction_handler.on_raw_reaction_add_internal(payload)
+        await self.reaction_handler.on_raw_reaction_add_internal(payload=payload, config=config)
     
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        self.reaction_handler.on_raw_reaction_remove_internal(payload)
+        await self.reaction_handler.on_raw_reaction_remove_internal(payload=payload, config=config)
 
     async def on_message(self, message: discord.Message):
         # ignore if it's the bot's message

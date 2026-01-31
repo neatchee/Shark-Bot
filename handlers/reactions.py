@@ -1,21 +1,20 @@
 import logging, discord
 import utils.read_Yaml as RY
-
-from MyClient import AppConfig
 from utils.core import *
 
 class reaction_handler:
     ROLES_PER_GUILD: dict
     CONFIG_PATH: str
 
-    def __init__(self, config_path, roles_per_guild):
+    def __init__(self, config_path, roles_per_guild, bot: discord.Client):
         self.CONFIG_PATH = config_path
         self.ROLES_PER_GUILD = roles_per_guild
+        self.bot = bot
 
     # ======= Ensures React Roles message exists =======
     async def ensure_react_roles_message_internal(self, config: AppConfig, guild: discord.Guild):
         # check for guild config, if none found then skip
-        if not is_guild_in_config(guild.id):
+        if not is_guild_in_config(guild_id=guild.id, config=config):
             logging.error(f"Guild {guild.name} is not in the config. Skipping")
             return
 
@@ -23,17 +22,17 @@ class reaction_handler:
         guild_name: str = id_to_name.get(guild.id)
         # print(guild_name)
         
-        react_role_messages: dict = config.get("guild role messages").setdefault(guild_name, {})
+        react_role_messages: dict = config.guild_role_messages.setdefault(guild_name, {})
         # print(react_role_messages)
 
-        if not is_rr_message_id_in_config(guild_name=guild_name):
+        if not is_rr_message_id_in_config(guild_name=guild_name, config=config):
             logging.error(f"Guild {guild.name} is does not have a react roles message ID Key")
             return        
 
         for rr_message in react_role_messages:
             # print(react_role_messages[rr_message])
 
-            channel_id = int(get_channel_id(guild_name, "roles"))
+            channel_id = int(get_channel_id(config=config, guild_name=guild_name, channel="roles"))
             channel = guild.get_channel(channel_id) if channel_id else None
 
             if react_role_messages[rr_message] != 0:
@@ -100,7 +99,7 @@ class reaction_handler:
                 except discord.HTTPException:
                     logging.error(f"[RR] could not add reaction {emoji} in {guild_name}")
             
-            config["guild role messages"][guild_name][rr_message] = message.id
+            config.guild_role_messages[guild_name][rr_message] = message.id
             RY.save_config(CONFIG=self.CONFIG_PATH, cfg=config)
         
     # ======= REACTION ROLES ADD ROLE =======
@@ -120,7 +119,7 @@ class reaction_handler:
         
         guild_name = id_to_name.get(int(gid))
 
-        rr_message_ids: dict = config.get("guild role messages").get(guild_name)
+        rr_message_ids: dict = config.guild_role_messages.get(guild_name)
         found = False
         message_id: int
         for id in rr_message_ids.values():
@@ -132,7 +131,7 @@ class reaction_handler:
             logging.info("Message isn't in my list")
             return
         
-        react_role_messages: dict = config.get("guild role messages").setdefault(guild_name, {})
+        react_role_messages: dict = config.guild_role_messages.setdefault(guild_name, {})
         id_to_name_rr = {int(v): k for k, v in react_role_messages.items()}
         rr_message = id_to_name_rr.get(message_id)
         mapping = self.ROLES_PER_GUILD.get(gid).get(rr_message)
@@ -146,7 +145,7 @@ class reaction_handler:
             logging.info("not the emoji i care about")
             return
         
-        guild = self.get_guild(gid)
+        guild = self.bot.get_guild(gid)
         role = guild.get_role(role_id)
         if role is None:
             logging.warning(f"Couldn't find role with ID of {role_id} and emoji of {key}")
@@ -176,7 +175,7 @@ class reaction_handler:
         
         guild_name = id_to_name.get(int(gid))
 
-        rr_message_ids: dict = config.get("guild role messages").get(guild_name)
+        rr_message_ids: dict = config.guild_role_messages.get(guild_name)
         found = False
         message_id: int
         for id in rr_message_ids.values():
@@ -188,7 +187,7 @@ class reaction_handler:
             logging.info("Message isn't in my list")
             return
         
-        react_role_messages: dict = config.get("guild role messages").setdefault(guild_name, {})
+        react_role_messages: dict = config.guild_role_messages.setdefault(guild_name, {})
         id_to_name_rr = {int(v): k for k, v in react_role_messages.items()}
         rr_message = id_to_name_rr.get(message_id)
         mapping = self.ROLES_PER_GUILD.get(gid).get(rr_message)
@@ -202,7 +201,7 @@ class reaction_handler:
             logging.info("not the emoji i care about")
             return
         
-        guild = self.get_guild(gid)
+        guild = self.bot.get_guild(gid)
         role = guild.get_role(role_id)
         if role is None:
             logging.warning(f"Couldn't find role with ID of {role_id} and emoji of {key}")

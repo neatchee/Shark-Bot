@@ -1,5 +1,6 @@
 import yaml
 from pathlib import Path
+from utils.core import AppConfig
 
 def load_config(CONFIG: Path):
     """
@@ -13,16 +14,16 @@ def load_config(CONFIG: Path):
     """
     return yaml.safe_load(CONFIG.read_text(encoding="UTF-8")) or {}
 
-def save_config(CONFIG: Path, cfg: dict):
+def save_config(CONFIG: Path, cfg: AppConfig):
     """
     saves changed to a YAML file
     
     Args:
         CONFIG (Path): The path of the config file.
-        cfg    (dict): The dictionary to be saved into the YAML file.
+        cfg    (AppConfig): The dictionary to be saved into the YAML file.
     """
     temp = CONFIG.with_suffix(".tmp")
-    temp.write_text(yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True), encoding=("UTF-8"))
+    temp.write_text(yaml.safe_dump(cfg.to_yaml_dict(), sort_keys=False, allow_unicode=True), encoding=("UTF-8"))
     temp.replace(CONFIG)
 
 def read_config(CONFIG: Path):
