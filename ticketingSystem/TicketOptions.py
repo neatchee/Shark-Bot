@@ -69,11 +69,8 @@ class TicketOptions(discord.ui.View):
 
             if not transcript:
                 await interaction.response.send_message("Failed to generate transcript!", ephemeral=True)
-                return
-
-            if not transcript:
                 logging.error("[TICKETTING SYSTEM] Transcript exporter returned None or Empty string")
-                transcript = "<html><body><h1> Transcript Generation failed</h1></body></html>"
+                return
             
             # Ensure transcript is a string
             if isinstance(transcript, bytes):
@@ -113,10 +110,7 @@ class TicketOptions(discord.ui.View):
                 dm_embed.add_field(name="Ticket Closed", value=f"<t:{ticket_closed_unix}:f>", inline=True)
 
                 await ticket_creator.send(content="Here's your transcript: \n In order to view it you will have to download the file and open it in your web browser!",embed=dm_embed, file=transcript_file_user)
-            except discord.Forbidden:
-                transcript_info.add_field(name="Error", value="Ticket Creator DM's are disabled", inline=True)
             except Exception as e:
-                transcript_info.add_field(name="Error", value=f"Failed to send DM: {str(e)}")
                 logging.error(f"Failed to send DM to ticket creator ({ticket_creator}): {e}")
         
         try:
