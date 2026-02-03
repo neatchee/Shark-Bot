@@ -69,11 +69,8 @@ class TicketOptions(discord.ui.View):
 
             if not transcript:
                 await interaction.response.send_message("Failed to generate transcript!", ephemeral=True)
-                return
-
-            if not transcript:
                 logging.error("[TICKETTING SYSTEM] Transcript exporter returned None or Empty string")
-                transcript = "<html><body><h1> Transcript Generation failed</h1></body></html>"
+                return
             
             # Ensure transcript is a string
             if isinstance(transcript, bytes):
